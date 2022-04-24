@@ -17,13 +17,13 @@ class SettingsActivity : AppCompatActivity() {
 
         //activate back button on action bar
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.title = "Settings"
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        when (item.itemId){
-            android.R.id.home ->{
+        when (item.itemId) {
+            android.R.id.home -> {
                 finish()
-                overridePendingTransition(R.anim.slide_out_right,R.anim.slide_out_right)
             }
         }
         return true

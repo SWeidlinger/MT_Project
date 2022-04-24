@@ -3,11 +3,16 @@
     xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item
+        android:id="@+id/activity_main_menu_switchCamera"
+        android:icon="@drawable/ic_baseline_flip_camera_ios_26"
+        android:title="Switch Camera"
+        app:showAsAction="always" />
+    <item
         android:id="@+id/activity_main_menu_settings"
-        android:icon="@drawable/ic_baseline_settings_24"
+        android:icon="@drawable/ic_baseline_settings_26"
         android:title="Settings"
         app:showAsAction="always" />
-<!--    <item-->
+    <!--    <item-->
 <!--        android:id="@+id/activity_main_menu_switchCamera"-->
 <!--        android:icon="@drawable/ic_baseline_switch_camera_24"-->
 <!--        android:title="Switch Camera"-->

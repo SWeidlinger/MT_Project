@@ -1,15 +1,10 @@
 package at.fhooe.mc.mtproject
 
 import android.Manifest
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.gesture.Gesture
-import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.os.VibrationEffect
-import android.os.Vibrator
 import android.util.Log
 import android.view.*
 import android.widget.Toast
@@ -18,7 +13,6 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.view.GestureDetectorCompat
 import at.fhooe.mc.mtproject.databinding.ActivityMainBinding
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -73,9 +67,7 @@ class MainActivity : AppCompatActivity() {
                     override fun onDoubleTap(e: MotionEvent?): Boolean {
                         //vibration for when the camera changes
                         binding.root.rootView.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-
                         switchCameraInput()
-
                         return super.onDoubleTap(e)
                     }
                 })
@@ -145,6 +137,9 @@ class MainActivity : AppCompatActivity() {
         when (item.itemId) {
             R.id.activity_main_menu_settings -> {
                 startActivity(Intent(this, SettingsActivity::class.java))
+            }
+            R.id.activity_main_menu_switchCamera -> {
+                switchCameraInput()
             }
             else -> {
                 Log.e(
