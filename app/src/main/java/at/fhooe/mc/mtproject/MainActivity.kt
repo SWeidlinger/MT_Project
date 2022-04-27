@@ -1,27 +1,44 @@
 package at.fhooe.mc.mtproject
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.PackageManager
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
+import android.util.Size
 import android.view.*
 import android.widget.Toast
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.LifecycleOwner
 import at.fhooe.mc.mtproject.databinding.ActivityMainBinding
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.pose.PoseDetection
+import com.google.mlkit.vision.pose.PoseDetector
+import com.google.mlkit.vision.pose.defaults.PoseDetectorOptions
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 private const val TAG = "MainActivity"
+private const val USE_ML_KIT= true
 
 class MainActivity : AppCompatActivity() {
-    private lateinit var mCameraExecutor: ExecutorService
     private lateinit var binding: ActivityMainBinding
+    private lateinit var mCameraExecutor: ExecutorService
+    private lateinit var mCameraProvider: ProcessCameraProvider
+    private val mImageResolution: Size = Size(480,360)
+    private lateinit var mImageAnalyzer: ImageAnalysis
+    private lateinit var mPreview: Preview
+
+    //pose detection
+    private lateinit var mPoseDetector: PoseDetector
 
     // Select back camera as default
     private var mCameraSelector: CameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
@@ -34,12 +51,15 @@ class MainActivity : AppCompatActivity() {
 
         //request camera permissions
         if (allPermissionsGranted()) {
+            initPoseDetection()
             startCamera()
         } else {
             ActivityCompat.requestPermissions(this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS)
         }
 
         mCameraExecutor = Executors.newSingleThreadExecutor()
+
+        initImageAnalyzer()
 
         binding.activityMainViewFinder.setOnTouchListener(configureDoubleTap())
 
@@ -50,13 +70,11 @@ class MainActivity : AppCompatActivity() {
 //        }
     }
 
-    private fun switchCameraInput() {
-        if (mCameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) {
-            mCameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
-        } else {
-            mCameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-        }
-        startCamera()
+    private fun initPoseDetection(){
+        val options = PoseDetectorOptions.Builder()
+            .setDetectorMode(PoseDetectorOptions.STREAM_MODE)
+            .build()
+        mPoseDetector = PoseDetection.getClient(options)
     }
 
     //sets up the double tap, so that you can double tap to switch cameras
@@ -104,28 +122,65 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun switchCameraInput() {
+        if (mCameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) {
+            mCameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
+        } else {
+            mCameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+        }
+        startCamera()
+    }
+
     private fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
         cameraProviderFuture.addListener({
             // Used to bind the lifecycle of cameras to the lifecycle owner
-            val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
+            mCameraProvider = cameraProviderFuture.get()
             // Preview
-            val preview = Preview.Builder()
+            mPreview = Preview.Builder()
                 .build()
                 .also {
                     it.setSurfaceProvider(binding.activityMainViewFinder.surfaceProvider)
                 }
             try {
                 // Unbind use cases before rebinding
-                cameraProvider.unbindAll()
+                mCameraProvider.unbindAll()
                 // Bind use cases to camera
-                cameraProvider.bindToLifecycle(
-                    this, mCameraSelector, preview
+                mCameraProvider.bindToLifecycle(
+                    this, mCameraSelector, mPreview, mImageAnalyzer
                 )
             } catch (exc: Exception) {
                 Log.e(TAG, "Use case binding failed", exc)
             }
         }, ContextCompat.getMainExecutor(this))
+    }
+
+    @SuppressLint("UnsafeOptInUsageError")
+    private fun initImageAnalyzer(){
+        mImageAnalyzer = ImageAnalysis.Builder()
+            .setTargetResolution(mImageResolution)
+            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+            .build()
+        mImageAnalyzer.setAnalyzer(mCameraExecutor) { imageProxy ->
+            val rotationDegrees = imageProxy.imageInfo.rotationDegrees
+            val image = imageProxy.image
+            if (image != null) {
+                val inputImage = InputImage.fromMediaImage(image, rotationDegrees)
+                mPoseDetector
+                    .process(inputImage)
+                    .addOnFailureListener {
+                        imageProxy.close()
+                    }.addOnSuccessListener { objects ->
+                        val frontCamera = mCameraSelector == CameraSelector.DEFAULT_FRONT_CAMERA
+                        val element = Draw(this,objects,"test",frontCamera)
+                        if (binding.root.childCount > 1){
+                            binding.root.removeViewAt(1)
+                        }
+                        binding.root.addView(element,1)
+                        imageProxy.close()
+                    }
+            }
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
