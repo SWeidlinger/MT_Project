@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package at.fhooe.mc.mtproject;
+package at.fhooe.mc.mtproject.helpers;
 
 import android.content.Context;
 import android.graphics.Canvas;

@@ -19,6 +19,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import at.fhooe.mc.mtproject.databinding.ActivityMainBinding
+import at.fhooe.mc.mtproject.helpers.GraphicOverlay
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.pose.PoseDetection
 import com.google.mlkit.vision.pose.PoseDetector
@@ -36,6 +37,7 @@ class MainActivity : AppCompatActivity() {
     private val mImageResolution: Size = Size(480,360)
     private lateinit var mImageAnalyzer: ImageAnalysis
     private lateinit var mPreview: Preview
+    private lateinit var mGraphicOverlay: GraphicOverlay
 
     //pose detection
     private lateinit var mPoseDetector: PoseDetector
@@ -45,6 +47,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        mGraphicOverlay = GraphicOverlay(this,null)
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -172,11 +176,15 @@ class MainActivity : AppCompatActivity() {
                         imageProxy.close()
                     }.addOnSuccessListener { objects ->
                         val frontCamera = mCameraSelector == CameraSelector.DEFAULT_FRONT_CAMERA
-                        val element = Draw(this,objects,"test",frontCamera)
+                        val element = Draw(mGraphicOverlay,objects,"test",frontCamera)
+
                         if (binding.root.childCount > 1){
                             binding.root.removeViewAt(1)
                         }
-                        binding.root.addView(element,1)
+                        binding.root.addView(mGraphicOverlay,1)
+                        mGraphicOverlay.clear()
+                        mGraphicOverlay.add(element)
+
                         imageProxy.close()
                     }
             }

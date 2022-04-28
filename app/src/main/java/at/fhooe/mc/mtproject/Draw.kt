@@ -7,12 +7,11 @@ import android.graphics.Paint
 import android.view.View
 import com.google.mlkit.vision.pose.Pose
 import com.google.mlkit.vision.pose.PoseLandmark
-import at.fhooe.mc.mtproject.GraphicOverlay
-import at.fhooe.mc.mtproject.GraphicOverlay.Graphic
+import at.fhooe.mc.mtproject.helpers.GraphicOverlay
 
 //TODO scale and translate the drawings to the correct size,
 // consider flipped image when front camera is used
-class Draw(context: Context?, var pose: Pose, var text: String, val frontCamera: Boolean) : View(context) {
+class Draw(overlay: GraphicOverlay, var pose: Pose, var text: String, val frontCamera: Boolean) : GraphicOverlay.Graphic(overlay) {
     private var mPaint: Paint = Paint()
     private var mFacePaint: Paint = Paint()
     private var mArmPaint: Paint = Paint()
@@ -20,6 +19,7 @@ class Draw(context: Context?, var pose: Pose, var text: String, val frontCamera:
     private var mLegPaint: Paint = Paint()
     private var mHandPaint: Paint = Paint()
     private var mFootPaint: Paint = Paint()
+    private lateinit var mCanvas: Canvas
 
 
     private var zMin = java.lang.Float.MAX_VALUE
@@ -61,12 +61,17 @@ class Draw(context: Context?, var pose: Pose, var text: String, val frontCamera:
         mFootPaint.style = Paint.Style.FILL
     }
 
-    override fun onDraw(canvas: Canvas) {
-        super.onDraw(canvas)
+    override fun draw(canvas: Canvas?) {
+        if (canvas != null) {
+            mCanvas = canvas
+        }
         val landmarks = pose.allPoseLandmarks
+        if (landmarks.isEmpty()) {
+            return
+        }
         for (landmark in landmarks) {
-            drawPoint(canvas, landmark, mPaint)
-            drawLines(canvas)
+            drawPoint(mCanvas, landmark, mPaint)
+            drawLines(mCanvas)
         }
     }
 
@@ -169,24 +174,6 @@ class Draw(context: Context?, var pose: Pose, var text: String, val frontCamera:
             translateY(end.y),
             paint
         )
-    }
-
-    private fun translateX(x: Float): Float{
-//        if (frontCamera) {
-//            return context.getWidth() - (scale(x) - overlay.postScaleWidthOffset);
-//        } else {
-//            return scale(x) - overlay.postScaleWidthOffset;
-//        }
-        return x + 100
-    }
-
-    private fun translateY(y: Float): Float{
-//        if (frontCamera) {
-//            return context.getWidth() - (scale(x) - overlay.postScaleWidthOffset);
-//        } else {
-//            return scale(x) - overlay.postScaleWidthOffset;
-//        }
-        return y + 600
     }
 
     companion object {
