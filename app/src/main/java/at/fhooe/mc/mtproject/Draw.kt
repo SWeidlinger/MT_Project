@@ -11,7 +11,7 @@ import at.fhooe.mc.mtproject.helpers.GraphicOverlay
 
 //TODO scale and translate the drawings to the correct size,
 // consider flipped image when front camera is used
-class Draw(overlay: GraphicOverlay, var pose: Pose, var text: String, val frontCamera: Boolean) : GraphicOverlay.Graphic(overlay) {
+class Draw(var overlay: GraphicOverlay, var pose: Pose, var text: String, val frontCamera: Boolean) : GraphicOverlay.Graphic(overlay) {
     private var mPaint: Paint = Paint()
     private var mFacePaint: Paint = Paint()
     private var mArmPaint: Paint = Paint()
@@ -19,6 +19,7 @@ class Draw(overlay: GraphicOverlay, var pose: Pose, var text: String, val frontC
     private var mLegPaint: Paint = Paint()
     private var mHandPaint: Paint = Paint()
     private var mFootPaint: Paint = Paint()
+    private var mTextPaint: Paint = Paint()
     private lateinit var mCanvas: Canvas
 
 
@@ -30,41 +31,39 @@ class Draw(overlay: GraphicOverlay, var pose: Pose, var text: String, val frontC
         mPaint.strokeWidth = 20f
         mPaint.style = Paint.Style.STROKE
 
-        mFacePaint = Paint()
         mFacePaint.color = Color.BLACK
         mFacePaint.strokeWidth = 10f
         mFacePaint.style = Paint.Style.FILL
 
-        mArmPaint = Paint()
         mArmPaint.color = Color.RED
         mArmPaint.strokeWidth = 10f
         mArmPaint.style = Paint.Style.FILL
 
-        mChestPaint = Paint()
         mChestPaint.color = Color.BLUE
         mChestPaint.strokeWidth = 10f
         mChestPaint.style = Paint.Style.FILL
 
-        mLegPaint = Paint()
         mLegPaint.color = Color.YELLOW
         mLegPaint.strokeWidth = 10f
         mLegPaint.style = Paint.Style.FILL
 
-        mHandPaint = Paint()
         mHandPaint.color = Color.GREEN
         mHandPaint.strokeWidth = 10f
         mHandPaint.style = Paint.Style.FILL
 
-        mFootPaint = Paint()
         mFootPaint.color = Color.LTGRAY
         mFootPaint.strokeWidth = 10f
         mFootPaint.style = Paint.Style.FILL
+
+        mTextPaint.color = Color.WHITE
+        mTextPaint.textSize = 30f
     }
 
     override fun draw(canvas: Canvas?) {
         if (canvas != null) {
             mCanvas = canvas
         }
+        mCanvas.drawText("W: " + overlay.width + " | H: " + overlay.height,35f,250f,mTextPaint)
         val landmarks = pose.allPoseLandmarks
         if (landmarks.isEmpty()) {
             return
@@ -174,6 +173,9 @@ class Draw(overlay: GraphicOverlay, var pose: Pose, var text: String, val frontC
             translateY(end.y),
             paint
         )
+    }
+
+    private fun drawText(canvas: Canvas, text: String, ){
     }
 
     companion object {

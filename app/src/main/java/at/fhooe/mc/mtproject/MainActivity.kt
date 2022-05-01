@@ -20,6 +20,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import at.fhooe.mc.mtproject.databinding.ActivityMainBinding
 import at.fhooe.mc.mtproject.helpers.GraphicOverlay
+import at.fhooe.mc.mtproject.helpers.VisionImageProcessor
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.pose.PoseDetection
 import com.google.mlkit.vision.pose.PoseDetector
@@ -28,16 +29,17 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 private const val TAG = "MainActivity"
-private const val USE_ML_KIT= true
+private const val USE_ML_KIT = true
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var mCameraExecutor: ExecutorService
     private lateinit var mCameraProvider: ProcessCameraProvider
-    private val mImageResolution: Size = Size(480,360)
+    private val mImageResolution: Size = Size(640, 480)
     private lateinit var mImageAnalyzer: ImageAnalysis
     private lateinit var mPreview: Preview
     private lateinit var mGraphicOverlay: GraphicOverlay
+    private lateinit var mImageProcessor: VisionImageProcessor
 
     //pose detection
     private lateinit var mPoseDetector: PoseDetector
@@ -48,22 +50,24 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        mGraphicOverlay = GraphicOverlay(this,null)
-
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        mGraphicOverlay = binding.activityMainGraphicOverlay
+        if (mGraphicOverlay == null) {
+            Log.d(TAG, "graphicOverlay is null")
+        }
+
         //request camera permissions
         if (allPermissionsGranted()) {
+            mCameraExecutor = Executors.newSingleThreadExecutor()
             initPoseDetection()
+            initImageAnalyzer()
+
             startCamera()
         } else {
             ActivityCompat.requestPermissions(this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS)
         }
-
-        mCameraExecutor = Executors.newSingleThreadExecutor()
-
-        initImageAnalyzer()
 
         binding.activityMainViewFinder.setOnTouchListener(configureDoubleTap())
 
@@ -74,7 +78,7 @@ class MainActivity : AppCompatActivity() {
 //        }
     }
 
-    private fun initPoseDetection(){
+    private fun initPoseDetection() {
         val options = PoseDetectorOptions.Builder()
             .setDetectorMode(PoseDetectorOptions.STREAM_MODE)
             .build()
@@ -160,7 +164,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     @SuppressLint("UnsafeOptInUsageError")
-    private fun initImageAnalyzer(){
+    private fun initImageAnalyzer() {
         mImageAnalyzer = ImageAnalysis.Builder()
             .setTargetResolution(mImageResolution)
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
@@ -175,12 +179,28 @@ class MainActivity : AppCompatActivity() {
                     .addOnFailureListener {
                         imageProxy.close()
                     }.addOnSuccessListener { objects ->
-                        val frontCamera = mCameraSelector == CameraSelector.DEFAULT_FRONT_CAMERA
-                        val element = Draw(mGraphicOverlay,objects,"test",frontCamera)
+                            val frontCamera = mCameraSelector == CameraSelector.DEFAULT_FRONT_CAMERA
+                            val rotationDegrees = imageProxy.imageInfo.rotationDegrees
 
-                        if (binding.root.childCount > 1){
+                            if (rotationDegrees == 0 || rotationDegrees == 180) {
+                                mGraphicOverlay!!.setImageSourceInfo(
+                                    imageProxy.width,
+                                    imageProxy.height,
+                                    frontCamera
+                                )
+                            } else {
+                                mGraphicOverlay!!.setImageSourceInfo(
+                                    imageProxy.height,
+                                    imageProxy.width,
+                                    frontCamera
+                                )
+                            }
+                        val element = Draw(mGraphicOverlay, objects, "test", frontCamera)
+                        if (binding.root.childCount > 1) {
                             binding.root.removeViewAt(1)
                         }
+
+//                        imageProcessor!!.processImageProxy(imageProxy, graphicOverlay)
                         binding.root.addView(mGraphicOverlay,1)
                         mGraphicOverlay.clear()
                         mGraphicOverlay.add(element)
