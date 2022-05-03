@@ -9,9 +9,7 @@ import com.google.mlkit.vision.pose.Pose
 import com.google.mlkit.vision.pose.PoseLandmark
 import at.fhooe.mc.mtproject.helpers.GraphicOverlay
 
-//TODO scale and translate the drawings to the correct size,
-// consider flipped image when front camera is used
-class Draw(var overlay: GraphicOverlay, var pose: Pose, var text: String, val frontCamera: Boolean) : GraphicOverlay.Graphic(overlay) {
+class Draw(var overlay: GraphicOverlay, var pose: Pose, debugMode: Boolean) : GraphicOverlay.Graphic(overlay) {
     private var mPaint: Paint = Paint()
     private var mFacePaint: Paint = Paint()
     private var mArmPaint: Paint = Paint()
@@ -21,7 +19,7 @@ class Draw(var overlay: GraphicOverlay, var pose: Pose, var text: String, val fr
     private var mFootPaint: Paint = Paint()
     private var mTextPaint: Paint = Paint()
     private lateinit var mCanvas: Canvas
-
+    private var mDebugMode = debugMode
 
     private var zMin = java.lang.Float.MAX_VALUE
     private var zMax = java.lang.Float.MIN_VALUE
@@ -63,7 +61,10 @@ class Draw(var overlay: GraphicOverlay, var pose: Pose, var text: String, val fr
         if (canvas != null) {
             mCanvas = canvas
         }
-        mCanvas.drawText("W: " + overlay.width + " | H: " + overlay.height,35f,250f,mTextPaint)
+        if (mDebugMode){
+            debugText()
+        }
+
         val landmarks = pose.allPoseLandmarks
         if (landmarks.isEmpty()) {
             return
@@ -127,33 +128,37 @@ class Draw(var overlay: GraphicOverlay, var pose: Pose, var text: String, val fr
         drawLine(canvas, rightEyeOuter, rightEar, mFacePaint)
         drawLine(canvas, leftMouth, rightMouth, mFacePaint)
 
+        //chest
         drawLine(canvas, leftShoulder, rightShoulder, mChestPaint)
+        drawLine(canvas, leftShoulder, leftHip, mChestPaint)
+        drawLine(canvas, rightShoulder, rightHip, mChestPaint)
 
-        drawLine(canvas, leftHip, rightHip, mLegPaint)
-
-        // Left body
+        //Arms
         drawLine(canvas, leftShoulder, leftElbow, mArmPaint)
         drawLine(canvas, leftElbow, leftWrist, mArmPaint)
-        drawLine(canvas, leftShoulder, leftHip, mChestPaint)
-        drawLine(canvas, leftHip, leftKnee, mLegPaint)
-        drawLine(canvas, leftKnee, leftAnkle, mLegPaint)
+        drawLine(canvas, rightShoulder, rightElbow, mArmPaint)
+        drawLine(canvas, rightElbow, rightWrist, mArmPaint)
+
+        //Hands
         drawLine(canvas, leftWrist, leftThumb, mHandPaint)
         drawLine(canvas, leftWrist, leftPinky, mHandPaint)
         drawLine(canvas, leftWrist, leftIndex, mHandPaint)
         drawLine(canvas, leftIndex, leftPinky, mHandPaint)
-        drawLine(canvas, leftAnkle, leftHeel, mFootPaint)
-        drawLine(canvas, leftHeel, leftFootIndex, mFootPaint)
-
-        // Right body
-        drawLine(canvas, rightShoulder, rightElbow, mArmPaint)
-        drawLine(canvas, rightElbow, rightWrist, mArmPaint)
-        drawLine(canvas, rightShoulder, rightHip, mChestPaint)
-        drawLine(canvas, rightHip, rightKnee, mLegPaint)
-        drawLine(canvas, rightKnee, rightAnkle, mLegPaint)
         drawLine(canvas, rightWrist, rightThumb, mHandPaint)
         drawLine(canvas, rightWrist, rightPinky, mHandPaint)
         drawLine(canvas, rightWrist, rightIndex, mHandPaint)
         drawLine(canvas, rightIndex, rightPinky, mHandPaint)
+
+        //Legs
+        drawLine(canvas, leftHip, rightHip, mLegPaint)
+        drawLine(canvas, leftHip, leftKnee, mLegPaint)
+        drawLine(canvas, leftKnee, leftAnkle, mLegPaint)
+        drawLine(canvas, rightHip, rightKnee, mLegPaint)
+        drawLine(canvas, rightKnee, rightAnkle, mLegPaint)
+
+        //Feet
+        drawLine(canvas, leftAnkle, leftHeel, mFootPaint)
+        drawLine(canvas, leftHeel, leftFootIndex, mFootPaint)
         drawLine(canvas, rightAnkle, rightHeel, mFootPaint)
         drawLine(canvas, rightHeel, rightFootIndex, mFootPaint)
     }
@@ -175,7 +180,8 @@ class Draw(var overlay: GraphicOverlay, var pose: Pose, var text: String, val fr
         )
     }
 
-    private fun drawText(canvas: Canvas, text: String, ){
+    private fun debugText(){
+        mCanvas.drawText("W: " + overlay.width + " | H: " + overlay.height, 35f, 250f, mTextPaint)
     }
 
     companion object {
