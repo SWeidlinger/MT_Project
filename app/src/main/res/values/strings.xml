@@ -1,3 +1,19 @@
 <resources>
     <string name="app_name">MT_Project</string>
+
+    <string-array name="Resolutions">
+        <item>320x240</item>
+        <item>640x480</item>
+        <item>1280x720</item>
+        <item>1920x1080</item>
+    </string-array>
+
+    <string-array name="Models">
+        <item>MLKit Normal</item>
+        <item>MLKit Accurate</item>
+        <item>MoveNet Thunder</item>
+        <item>MoveNet Lightning</item>
+        <item>MoveNet MultiPose</item>
+    </string-array>
+
 </resources>

@@ -35,7 +35,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var mCameraExecutor: ExecutorService
     private lateinit var mCameraProvider: ProcessCameraProvider
-    private val mImageResolution: Size = Size(480, 640)
+    private var mImageResolution: Size = Size(480, 640)
     private lateinit var mImageAnalyzer: ImageAnalysis
     private lateinit var mPreview: Preview
     private lateinit var mGraphicOverlay: GraphicOverlay
@@ -47,6 +47,10 @@ class MainActivity : AppCompatActivity() {
     private var mCameraSelector: CameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
     private var mDebugMode: Boolean = false
     private lateinit var mResultLauncher: ActivityResultLauncher<Intent>
+    private var mModel: String = "MLKit Normal"
+
+    private var mSpinnerResolutionID: Int = 1
+    private var mSpinnerModelID: Int = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -77,12 +81,53 @@ class MainActivity : AppCompatActivity() {
 //        }
     }
 
-    private fun getSettings(){
+    override fun onResume() {
+        super.onResume()
+        initImageAnalyzer()
+        startCamera()
+    }
+
+    private fun getSettings() {
         mResultLauncher =
             registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
                 if (result.resultCode == Activity.RESULT_OK) {
                     // There are no request codes
                     mDebugMode = result.data!!.getBooleanExtra("debugMode", false)
+                    mSpinnerResolutionID = result.data!!.getIntExtra("resolution", 1)
+                    mSpinnerModelID = result.data!!.getIntExtra("model", 0)
+
+                    when (mSpinnerResolutionID) {
+                        0 -> {
+                            mImageResolution = Size(240, 320)
+                        }
+                        1 -> {
+                            mImageResolution = Size(480, 640)
+                        }
+                        2 -> {
+                            mImageResolution = Size(720, 1280)
+                        }
+                        3 -> {
+                            mImageResolution = Size(1080, 1920)
+                        }
+                    }
+
+                    when (mSpinnerModelID) {
+                        0 -> {
+                            mModel = "MLKit Normal"
+                        }
+                        1 -> {
+                            mModel = "MLKit Accurate"
+                        }
+                        2 -> {
+                            mModel = "MoveNet Thunder"
+                        }
+                        3 -> {
+                            mModel = "MoveNet Lightning"
+                        }
+                        4 -> {
+                            mModel = "MoveNet MultiPose"
+                        }
+                    }
                 }
             }
     }
@@ -173,7 +218,7 @@ class MainActivity : AppCompatActivity() {
                                 frontCamera
                             )
                         }
-                        val element = Draw(mGraphicOverlay, objects, mDebugMode)
+                        val element = Draw(mGraphicOverlay, objects, mDebugMode, mImageResolution)
                         if (binding.root.childCount > 1) {
                             binding.root.removeViewAt(1)
                         }
@@ -230,6 +275,8 @@ class MainActivity : AppCompatActivity() {
             R.id.activity_main_menu_settings -> {
                 val intent = (Intent(this, SettingsActivity::class.java))
                 intent.putExtra("debugMode", mDebugMode)
+                intent.putExtra("resolution", mSpinnerResolutionID)
+                intent.putExtra("model", mSpinnerModelID)
                 mResultLauncher.launch(intent)
             }
             R.id.activity_main_menu_switchCamera -> {

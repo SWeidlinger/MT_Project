@@ -4,12 +4,19 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.util.Size
 import android.view.View
 import com.google.mlkit.vision.pose.Pose
 import com.google.mlkit.vision.pose.PoseLandmark
 import at.fhooe.mc.mtproject.helpers.GraphicOverlay
+import java.util.*
 
-class Draw(var overlay: GraphicOverlay, var pose: Pose, debugMode: Boolean) : GraphicOverlay.Graphic(overlay) {
+class Draw(
+    var overlay: GraphicOverlay,
+    var pose: Pose,
+    var debugMode: Boolean,
+    val resolution: Size
+) : GraphicOverlay.Graphic(overlay) {
     private var mPaint: Paint = Paint()
     private var mFacePaint: Paint = Paint()
     private var mArmPaint: Paint = Paint()
@@ -19,49 +26,48 @@ class Draw(var overlay: GraphicOverlay, var pose: Pose, debugMode: Boolean) : Gr
     private var mFootPaint: Paint = Paint()
     private var mTextPaint: Paint = Paint()
     private lateinit var mCanvas: Canvas
-    private var mDebugMode = debugMode
 
     private var zMin = java.lang.Float.MAX_VALUE
     private var zMax = java.lang.Float.MIN_VALUE
 
     init {
         mPaint.color = Color.WHITE
-        mPaint.strokeWidth = 20f
+        mPaint.strokeWidth = STROKE_WIDTH
         mPaint.style = Paint.Style.STROKE
 
         mFacePaint.color = Color.BLACK
-        mFacePaint.strokeWidth = 10f
+        mFacePaint.strokeWidth = STROKE_WIDTH
         mFacePaint.style = Paint.Style.FILL
 
         mArmPaint.color = Color.RED
-        mArmPaint.strokeWidth = 10f
+        mArmPaint.strokeWidth = STROKE_WIDTH
         mArmPaint.style = Paint.Style.FILL
 
         mChestPaint.color = Color.BLUE
-        mChestPaint.strokeWidth = 10f
+        mChestPaint.strokeWidth = STROKE_WIDTH
         mChestPaint.style = Paint.Style.FILL
 
         mLegPaint.color = Color.YELLOW
-        mLegPaint.strokeWidth = 10f
+        mLegPaint.strokeWidth = STROKE_WIDTH
         mLegPaint.style = Paint.Style.FILL
 
         mHandPaint.color = Color.GREEN
-        mHandPaint.strokeWidth = 10f
+        mHandPaint.strokeWidth = STROKE_WIDTH
         mHandPaint.style = Paint.Style.FILL
 
         mFootPaint.color = Color.LTGRAY
-        mFootPaint.strokeWidth = 10f
+        mFootPaint.strokeWidth = STROKE_WIDTH
         mFootPaint.style = Paint.Style.FILL
 
         mTextPaint.color = Color.WHITE
-        mTextPaint.textSize = 30f
+        mTextPaint.textSize = DEBUG_TEXT_WIDTH
     }
 
     override fun draw(canvas: Canvas?) {
         if (canvas != null) {
             mCanvas = canvas
         }
-        if (mDebugMode){
+        if (debugMode) {
             debugText()
         }
 
@@ -71,16 +77,11 @@ class Draw(var overlay: GraphicOverlay, var pose: Pose, debugMode: Boolean) : Gr
         }
         for (landmark in landmarks) {
             drawPoint(mCanvas, landmark, mPaint)
-            drawLines(mCanvas)
+            initLandmarks(mCanvas)
         }
     }
 
-    private fun drawPoint(canvas: Canvas, landmark: PoseLandmark, paint: Paint) {
-        val point = landmark.position3D
-        canvas.drawCircle(translateX(point.x), translateY(point.y), DOT_RADIUS, paint)
-    }
-
-    private fun drawLines(canvas: Canvas) {
+    private fun initLandmarks(canvas: Canvas) {
         val nose = pose.getPoseLandmark(PoseLandmark.NOSE)
         val leftyEyeInner = pose.getPoseLandmark(PoseLandmark.LEFT_EYE_INNER)
         val leftyEye = pose.getPoseLandmark(PoseLandmark.LEFT_EYE)
@@ -163,6 +164,24 @@ class Draw(var overlay: GraphicOverlay, var pose: Pose, debugMode: Boolean) : Gr
         drawLine(canvas, rightHeel, rightFootIndex, mFootPaint)
     }
 
+    private fun drawPoint(canvas: Canvas, landmark: PoseLandmark, paint: Paint) {
+        val point = landmark.position3D
+        canvas.drawCircle(translateX(point.x), translateY(point.y), DOT_RADIUS, paint)
+        if (debugMode) {
+            val paint = Paint()
+            paint.color = Color.GREEN
+            paint.textSize = IN_FRAME_LIKELIHOOD_TEXT_SIZE
+
+            canvas.drawText(
+                String.format(Locale.US, "%.2f", landmark.inFrameLikelihood),
+                translateX(landmark.position.x + 5),
+                translateY(landmark.position.y + 20),
+                paint
+            )
+        }
+    }
+
+
     private fun drawLine(
         canvas: Canvas,
         startLandmark: PoseLandmark?,
@@ -180,14 +199,20 @@ class Draw(var overlay: GraphicOverlay, var pose: Pose, debugMode: Boolean) : Gr
         )
     }
 
-    private fun debugText(){
-        mCanvas.drawText("W: " + overlay.width + " | H: " + overlay.height, 35f, 250f, mTextPaint)
+    private fun debugText() {
+        mCanvas.drawText(
+            "Res: " + resolution.height + "x" + resolution.width,
+            35f,
+            250f,
+            mTextPaint
+        )
     }
 
     companion object {
-        private const val DOT_RADIUS = 6.0f
-        private const val IN_FRAME_LIKELIHOOD_TEXT_SIZE = 30.0f
+        private const val DOT_RADIUS = 7.0f
+        private const val IN_FRAME_LIKELIHOOD_TEXT_SIZE = 25.0f
         private const val STROKE_WIDTH = 10.0f
+        private const val DEBUG_TEXT_WIDTH = 35.0f
         private const val POSE_CLASSIFICATION_TEXT_SIZE = 60.0f
     }
 }
