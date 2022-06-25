@@ -1,21 +1,23 @@
 package at.fhooe.mc.mtproject
 
-import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.util.Size
-import android.view.View
 import com.google.mlkit.vision.pose.Pose
 import com.google.mlkit.vision.pose.PoseLandmark
 import at.fhooe.mc.mtproject.helpers.GraphicOverlay
 import java.util.*
+import kotlin.collections.ArrayList
 
 class Draw(
     var overlay: GraphicOverlay,
-    var pose: Pose,
+    val pose: Pose,
+    val poseClassificationArray: ArrayList<String>?,
     var debugMode: Boolean,
-    val resolution: Size
+    private val resolution: Size,
+    private val fps: Long,
+    private val thresholdIFL: Double
 ) : GraphicOverlay.Graphic(overlay) {
     private var mPaint: Paint = Paint()
     private var mFacePaint: Paint = Paint()
@@ -25,6 +27,7 @@ class Draw(
     private var mHandPaint: Paint = Paint()
     private var mFootPaint: Paint = Paint()
     private var mTextPaint: Paint = Paint()
+    private var mClassificationPaint: Paint = Paint()
     private lateinit var mCanvas: Canvas
 
     private var zMin = java.lang.Float.MAX_VALUE
@@ -61,6 +64,9 @@ class Draw(
 
         mTextPaint.color = Color.WHITE
         mTextPaint.textSize = DEBUG_TEXT_WIDTH
+
+        mClassificationPaint.color = Color.WHITE
+        mClassificationPaint.textSize = POSE_CLASSIFICATION_TEXT_SIZE
     }
 
     override fun draw(canvas: Canvas?) {
@@ -75,9 +81,26 @@ class Draw(
         if (landmarks.isEmpty()) {
             return
         }
+
+        if (!poseClassificationArray.isNullOrEmpty()) {
+            val classificationX = POSE_CLASSIFICATION_TEXT_SIZE * 0.5f
+            for (i in poseClassificationArray.indices) {
+                val classificationY =
+                    canvas?.height!! - (POSE_CLASSIFICATION_TEXT_SIZE * 1.5f * (poseClassificationArray.size - i).toFloat())
+                canvas.drawText(
+                    poseClassificationArray[i],
+                    classificationX,
+                    classificationY,
+                    mClassificationPaint
+                )
+            }
+        }
+
         for (landmark in landmarks) {
-            drawPoint(mCanvas, landmark, mPaint)
-            initLandmarks(mCanvas)
+            if (landmark.inFrameLikelihood >= thresholdIFL) {
+                drawPoint(mCanvas, landmark, mPaint)
+                initLandmarks(mCanvas)
+            }
         }
     }
 
@@ -168,19 +191,18 @@ class Draw(
         val point = landmark.position3D
         canvas.drawCircle(translateX(point.x), translateY(point.y), DOT_RADIUS, paint)
         if (debugMode) {
-            val paint = Paint()
-            paint.color = Color.GREEN
-            paint.textSize = IN_FRAME_LIKELIHOOD_TEXT_SIZE
+            val paintDebug = Paint()
+            paintDebug.color = Color.GREEN
+            paintDebug.textSize = IN_FRAME_LIKELIHOOD_TEXT_SIZE
 
             canvas.drawText(
                 String.format(Locale.US, "%.2f", landmark.inFrameLikelihood),
                 translateX(landmark.position.x + 5),
                 translateY(landmark.position.y + 20),
-                paint
+                paintDebug
             )
         }
     }
-
 
     private fun drawLine(
         canvas: Canvas,
@@ -200,19 +222,38 @@ class Draw(
     }
 
     private fun debugText() {
+        mTextPaint.style = Paint.Style.FILL
+
+        mTextPaint.color = Color.WHITE
         mCanvas.drawText(
-            "Res: " + resolution.height + "x" + resolution.width,
+            "Res: ${resolution.height} x ${resolution.width}",
             35f,
             250f,
             mTextPaint
         )
+        mCanvas.drawText("FPS: ${1000 / fps}", 35f, 300f, mTextPaint)
+        mCanvas.drawText("THRESHOLD IFL: ${(thresholdIFL * 100).toInt()}", 35f, 350f, mTextPaint)
+
+        mTextPaint.style = Paint.Style.STROKE
+        mTextPaint.color = Color.BLACK
+        mTextPaint.strokeJoin = Paint.Join.ROUND
+        mTextPaint.strokeWidth = 1f
+
+        mCanvas.drawText(
+            "Res: ${resolution.height} x ${resolution.width}",
+            35f,
+            250f,
+            mTextPaint
+        )
+        mCanvas.drawText("FPS: ${1000 / fps}", 35f, 300f, mTextPaint)
+        mCanvas.drawText("THRESHOLD IFL: ${(thresholdIFL * 100).toInt()}", 35f, 350f, mTextPaint)
     }
 
-    companion object {
-        private const val DOT_RADIUS = 7.0f
-        private const val IN_FRAME_LIKELIHOOD_TEXT_SIZE = 25.0f
-        private const val STROKE_WIDTH = 10.0f
-        private const val DEBUG_TEXT_WIDTH = 35.0f
-        private const val POSE_CLASSIFICATION_TEXT_SIZE = 60.0f
+    private companion object {
+        const val DOT_RADIUS = 7.0f
+        const val IN_FRAME_LIKELIHOOD_TEXT_SIZE = 25.0f
+        const val STROKE_WIDTH = 10.0f
+        const val DEBUG_TEXT_WIDTH = 45.0f
+        const val POSE_CLASSIFICATION_TEXT_SIZE = 60.0f
     }
 }

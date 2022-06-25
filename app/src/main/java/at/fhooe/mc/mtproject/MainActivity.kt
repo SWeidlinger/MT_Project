@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.os.SystemClock
 import android.util.Log
 import android.util.Size
 import android.view.*
@@ -19,14 +20,18 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.view.get
 import at.fhooe.mc.mtproject.databinding.ActivityMainBinding
 import at.fhooe.mc.mtproject.helpers.GraphicOverlay
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.pose.PoseDetection
 import com.google.mlkit.vision.pose.PoseDetector
 import com.google.mlkit.vision.pose.defaults.PoseDetectorOptions
+import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import kotlin.collections.ArrayList
+import kotlin.concurrent.timerTask
 
 private const val TAG = "MainActivity"
 private const val USE_ML_KIT = true
@@ -39,9 +44,19 @@ class MainActivity : AppCompatActivity() {
     private lateinit var mImageAnalyzer: ImageAnalysis
     private lateinit var mPreview: Preview
     private lateinit var mGraphicOverlay: GraphicOverlay
+    private var mPrevTime: Long = 0
+    private var mCurrentTime: Long = 0
+    private val mFpsUpdateTimer = Timer()
+    private var mFps: Long = 0
+    private var mThresholdIFL: Int = 50
 
     //pose detection
     private lateinit var mPoseDetector: PoseDetector
+    private lateinit var mPoseClassification: PoseClassification
+
+    //Right now classification of Poses is always active
+    //might be interesting to only activate it when a session is started...
+    private var mPoseClassificationActive = true
 
     // Select back camera as default
     private var mCameraSelector: CameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
@@ -60,10 +75,19 @@ class MainActivity : AppCompatActivity() {
 
         getSettings()
 
+        mPoseClassification = PoseClassification(this)
+
+        mFpsUpdateTimer.scheduleAtFixedRate(
+            timerTask {
+                mFps = mCurrentTime - mPrevTime
+            }, 0, 1000
+        )
+
         mGraphicOverlay = binding.activityMainGraphicOverlay
         //request camera permissions
         if (allPermissionsGranted()) {
             mCameraExecutor = Executors.newSingleThreadExecutor()
+            mPrevTime = SystemClock.elapsedRealtime()
             initPoseDetection()
             initImageAnalyzer()
 
@@ -95,6 +119,7 @@ class MainActivity : AppCompatActivity() {
                     mDebugMode = result.data!!.getBooleanExtra("debugMode", false)
                     mSpinnerResolutionID = result.data!!.getIntExtra("resolution", 1)
                     mSpinnerModelID = result.data!!.getIntExtra("model", 0)
+                    mThresholdIFL = result.data!!.getIntExtra("thresholdIFL", 50)
 
                     when (mSpinnerResolutionID) {
                         0 -> {
@@ -141,6 +166,7 @@ class MainActivity : AppCompatActivity() {
                         //vibration for when the camera changes
                         binding.root.rootView.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
                         switchCameraInput()
+                        mGraphicOverlay.clear()
                         return super.onDoubleTap(e)
                     }
                 })
@@ -199,29 +225,45 @@ class MainActivity : AppCompatActivity() {
                     .process(inputImage)
                     .addOnFailureListener {
                         imageProxy.close()
-                    }.addOnSuccessListener { objects ->
+                    }.addOnSuccessListener { pose ->
+                        mPrevTime = mCurrentTime
+                        mCurrentTime = SystemClock.elapsedRealtime()
                         val frontCamera = mCameraSelector == CameraSelector.DEFAULT_FRONT_CAMERA
-                        val rotationDegrees = imageProxy.imageInfo.rotationDegrees
 
                         //not quite sure if this is needed, but im just gonna leave it here in case
                         //removing it breaks something
                         if (rotationDegrees == 0 || rotationDegrees == 180) {
-                            mGraphicOverlay!!.setImageSourceInfo(
+                            mGraphicOverlay.setImageSourceInfo(
                                 imageProxy.width,
                                 imageProxy.height,
                                 frontCamera
                             )
                         } else {
-                            mGraphicOverlay!!.setImageSourceInfo(
+                            mGraphicOverlay.setImageSourceInfo(
                                 imageProxy.height,
                                 imageProxy.width,
                                 frontCamera
                             )
                         }
-                        val element = Draw(mGraphicOverlay, objects, mDebugMode, mImageResolution)
+                        var poseClassification: ArrayList<String>? = null
+                        if (mPoseClassificationActive) {
+                            poseClassification = mPoseClassification.getPoseResult(pose)
+                        }
+
+                        val element = Draw(
+                            mGraphicOverlay,
+                            pose,
+                            poseClassification,
+                            mDebugMode,
+                            mImageResolution,
+                            mFps,
+                            mThresholdIFL / 100.0
+                        )
+
                         if (binding.root.childCount > 1) {
                             binding.root.removeViewAt(1)
                         }
+
                         binding.root.addView(mGraphicOverlay, 1)
                         mGraphicOverlay.clear()
                         mGraphicOverlay.add(element)
@@ -277,6 +319,7 @@ class MainActivity : AppCompatActivity() {
                 intent.putExtra("debugMode", mDebugMode)
                 intent.putExtra("resolution", mSpinnerResolutionID)
                 intent.putExtra("model", mSpinnerModelID)
+                intent.putExtra("thresholdIFL", mThresholdIFL)
                 mResultLauncher.launch(intent)
             }
             R.id.activity_main_menu_switchCamera -> {
@@ -295,6 +338,7 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         mCameraExecutor.shutdown()
+        mFpsUpdateTimer.cancel()
     }
 
     //Permissions Management

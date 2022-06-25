@@ -23,6 +23,10 @@ class SettingsActivity : AppCompatActivity() {
 
         populateSpinners()
 
+        binding.activitySettingsThresholdEditText.setText(
+            intent.getIntExtra("thresholdIFL", 50).toString()
+        )
+
         binding.activitySettingsDebugMode.isChecked = intent.getBooleanExtra("debugMode", false)
 
         //activate back button on action bar
@@ -61,6 +65,9 @@ class SettingsActivity : AppCompatActivity() {
                         ).putExtra(
                             "model",
                             binding.activitySettingsSpinnerModel.selectedItemPosition
+                        ).putExtra(
+                            "thresholdIFL",
+                            binding.activitySettingsThresholdEditText.text.toString().toInt()
                         )
                 )
                 finish()
@@ -78,6 +85,9 @@ class SettingsActivity : AppCompatActivity() {
             ).putExtra(
                 "model",
                 binding.activitySettingsSpinnerModel.selectedItemPosition
+            ).putExtra(
+                "thresholdIFL",
+                binding.activitySettingsThresholdEditText.text.toString().toInt()
             )
         )
         finish()
