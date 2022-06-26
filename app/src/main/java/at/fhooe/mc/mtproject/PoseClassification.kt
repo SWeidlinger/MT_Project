@@ -57,7 +57,8 @@ class PoseClassification(context: Context) {
             val repsAfter = repCount.addClassificationResult(classification)
             if (repsAfter > repsBefore) {
                 val tg = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100)
-                tg.startTone(ToneGenerator.TONE_PROP_BEEP, 100)
+                tg.startTone(ToneGenerator.TONE_PROP_BEEP)
+                tg.release()
                 mLastRepResult = String.format(
                     Locale.US,
                     "%s : %d reps",
@@ -88,6 +89,6 @@ class PoseClassification(context: Context) {
         const val PUSHUPS_CLASS = "pushups_down"
         const val SQUATS_CLASS = "squats_down"
         const val SITUPS_CLASS = "situps_down"
-        val POSE_CLASSES: ArrayList<String> = arrayListOf(PUSHUPS_CLASS, SQUATS_CLASS)
+        val POSE_CLASSES: ArrayList<String> = arrayListOf(PUSHUPS_CLASS, SQUATS_CLASS, SITUPS_CLASS)
     }
 }

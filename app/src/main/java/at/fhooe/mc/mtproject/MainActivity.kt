@@ -5,22 +5,22 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.SystemClock
 import android.util.Log
 import android.util.Size
+import android.util.TypedValue
 import android.view.*
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.view.get
 import at.fhooe.mc.mtproject.databinding.ActivityMainBinding
 import at.fhooe.mc.mtproject.helpers.GraphicOverlay
 import com.google.mlkit.vision.common.InputImage
@@ -30,7 +30,6 @@ import com.google.mlkit.vision.pose.defaults.PoseDetectorOptions
 import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import kotlin.collections.ArrayList
 import kotlin.concurrent.timerTask
 
 private const val TAG = "MainActivity"
@@ -257,7 +256,8 @@ class MainActivity : AppCompatActivity() {
                             mDebugMode,
                             mImageResolution,
                             mFps,
-                            mThresholdIFL / 100.0
+                            mThresholdIFL / 100.0,
+                            supportActionBar!!.height
                         )
 
                         if (binding.root.childCount > 1) {

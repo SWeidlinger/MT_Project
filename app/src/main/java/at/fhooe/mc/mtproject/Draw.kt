@@ -13,11 +13,12 @@ import kotlin.collections.ArrayList
 class Draw(
     var overlay: GraphicOverlay,
     val pose: Pose,
-    val poseClassificationArray: ArrayList<String>?,
+    private val poseClassificationArray: ArrayList<String>?,
     var debugMode: Boolean,
     private val resolution: Size,
     private val fps: Long,
-    private val thresholdIFL: Double
+    private val thresholdIFL: Double,
+    private val actionBarHeight: Int
 ) : GraphicOverlay.Graphic(overlay) {
     private var mPaint: Paint = Paint()
     private var mFacePaint: Paint = Paint()
@@ -64,6 +65,8 @@ class Draw(
 
         mTextPaint.color = Color.WHITE
         mTextPaint.textSize = DEBUG_TEXT_WIDTH
+        mTextPaint.setShadowLayer(10.0f,0f,0f, Color.BLACK)
+        mTextPaint.style = Paint.Style.FILL
 
         mClassificationPaint.color = Color.WHITE
         mClassificationPaint.textSize = POSE_CLASSIFICATION_TEXT_SIZE
@@ -222,31 +225,15 @@ class Draw(
     }
 
     private fun debugText() {
-        mTextPaint.style = Paint.Style.FILL
-
-        mTextPaint.color = Color.WHITE
         mCanvas.drawText(
             "Res: ${resolution.height} x ${resolution.width}",
             35f,
-            250f,
+            actionBarHeight + 150f,
             mTextPaint
         )
-        mCanvas.drawText("FPS: ${1000 / fps}", 35f, 300f, mTextPaint)
-        mCanvas.drawText("THRESHOLD IFL: ${(thresholdIFL * 100).toInt()}", 35f, 350f, mTextPaint)
 
-        mTextPaint.style = Paint.Style.STROKE
-        mTextPaint.color = Color.BLACK
-        mTextPaint.strokeJoin = Paint.Join.ROUND
-        mTextPaint.strokeWidth = 1f
-
-        mCanvas.drawText(
-            "Res: ${resolution.height} x ${resolution.width}",
-            35f,
-            250f,
-            mTextPaint
-        )
-        mCanvas.drawText("FPS: ${1000 / fps}", 35f, 300f, mTextPaint)
-        mCanvas.drawText("THRESHOLD IFL: ${(thresholdIFL * 100).toInt()}", 35f, 350f, mTextPaint)
+        mCanvas.drawText("FPS: ${1000 / fps}", 35f, actionBarHeight + 200f, mTextPaint)
+        mCanvas.drawText("THRESHOLD IFL: ${(thresholdIFL * 100).toInt()}", 35f, actionBarHeight + 250f, mTextPaint)
     }
 
     private companion object {
