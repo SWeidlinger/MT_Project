@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.MainActivity" parent = "Theme.MaterialComponents.DayNight.DarkActionBar">
+        <item name="actionBarStyle">@style/MyTheme.ActionBar</item>
+    </style>
+
+    <style name="MyTheme.ActionBar" parent="Widget.AppCompat.ActionBar">
+        <!--        <item name="elevation">0dp</item>-->
+        <item name="background">@color/semi_transparent</item>
+    </style>
+
+    <style name="CustomActivityAnimation" parent="@android:style/Animation.Activity">
+        <item name="android:activityOpenEnterAnimation">@anim/slide_in_right</item>
+        <item name="android:activityOpenExitAnimation">@anim/slide_out_left</item>
+        <item name="android:activityCloseEnterAnimation">@anim/slide_in_left</item>
+        <item name="android:activityCloseExitAnimation">@anim/slide_out_right</item>
+    </style>
+
+    <style name="CustomBottomSheetDialogThemeLight"
+        parent="Theme.Design.Light.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/AppModalStyleLight</item>
+    </style>
+
+    <style name="CustomBottomSheetDialogThemeDark"
+        parent="Theme.Design.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/AppModalStyleDark</item>
+    </style>
+
+    <style name="AppModalStyleLight"
+        parent="Widget.Design.BottomSheet.Modal">
+        <item name="android:background">@drawable/custom_rounded_bottom_sheet</item>
+        <item name="android:backgroundTint">@color/white</item>
+    </style>
+
+    <style name="AppModalStyleDark"
+        parent="Widget.Design.BottomSheet.Modal">
+        <item name="android:background">@drawable/custom_rounded_bottom_sheet</item>
+        <item name="android:backgroundTint">#2F2F2F</item>
+    </style>
+</resources>

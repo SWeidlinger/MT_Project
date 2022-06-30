@@ -108,20 +108,6 @@
         app:layout_constraintStart_toStartOf="@+id/activity_settings_spinner_resolution"
         app:layout_constraintTop_toTopOf="@+id/textView7" />
 
-    <TextView
-        android:id="@+id/textView8"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="6dp"
-        android:layout_marginTop="28dp"
-        android:layout_marginBottom="3dp"
-        android:text="currently not working"
-        android:textColor="#707070"
-        android:textSize="10sp"
-        app:layout_constraintBottom_toBottomOf="@+id/textView7"
-        app:layout_constraintStart_toEndOf="@+id/textView7"
-        app:layout_constraintTop_toBottomOf="@+id/view" />
-
     <EditText
         android:id="@+id/activity_settings_threshold_editText"
         android:layout_width="wrap_content"

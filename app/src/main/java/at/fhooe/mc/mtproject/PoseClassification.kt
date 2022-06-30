@@ -11,6 +11,7 @@ import com.google.mlkit.vision.pose.Pose
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.util.*
+import kotlin.collections.ArrayList
 
 class PoseClassification(context: Context) {
     private lateinit var mPoseClassifier: PoseClassifier
@@ -19,23 +20,28 @@ class PoseClassification(context: Context) {
     private val mEMASmoothing = EMASmoothing()
     private var mLastRepResult = ""
 
+    private val mPoseSampleArray = ArrayList<PoseSample>()
+    private val mContext: Context
+
     init {
+        mContext = context
         loadPoseSamples(context)
     }
 
     private fun loadPoseSamples(context: Context) {
-        val poseSamplesArray = ArrayList<PoseSample>()
-        val file = BufferedReader(InputStreamReader(context.assets.open(POSE_SAMPLES_FILE)))
-        file.forEachLine {
-            it.let {
-                val poseSample = PoseSample.getPoseSample(it, ",")
-                if (poseSample != null) {
-                    poseSamplesArray.add(poseSample)
+        if (mPoseSampleArray.isEmpty()) {
+            val file = BufferedReader(InputStreamReader(context.assets.open(POSE_SAMPLES_FILE)))
+            file.forEachLine {
+                it.let {
+                    val poseSample = PoseSample.getPoseSample(it, ",")
+                    if (poseSample != null) {
+                        mPoseSampleArray.add(poseSample)
+                    }
                 }
             }
         }
 
-        mPoseClassifier = PoseClassifier(poseSamplesArray)
+        mPoseClassifier = PoseClassifier(mPoseSampleArray)
         for (i in POSE_CLASSES) {
             mRepCounter.add(RepetitionCounter(i))
         }
@@ -56,7 +62,7 @@ class PoseClassification(context: Context) {
             val repsBefore = repCount.numRepeats
             val repsAfter = repCount.addClassificationResult(classification)
             if (repsAfter > repsBefore) {
-                val tg = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100)
+                val tg = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
                 tg.startTone(ToneGenerator.TONE_PROP_BEEP)
                 tg.release()
                 mLastRepResult = String.format(
@@ -84,7 +90,16 @@ class PoseClassification(context: Context) {
         return result
     }
 
-    private companion object {
+    fun clearRepetitions() {
+        mRepCounter.clear()
+        loadPoseSamples(mContext)
+    }
+
+    fun getRepetitionCounter(): ArrayList<RepetitionCounter> {
+        return ArrayList<RepetitionCounter>(mRepCounter.filter { it.numRepeats > 0 })
+    }
+
+    companion object {
         const val POSE_SAMPLES_FILE = "pose/fitness_pose_samples.csv"
         const val PUSHUPS_CLASS = "pushups_down"
         const val SQUATS_CLASS = "squats_down"

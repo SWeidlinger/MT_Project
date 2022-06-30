@@ -18,7 +18,8 @@ class Draw(
     private val resolution: Size,
     private val fps: Long,
     private val thresholdIFL: Double,
-    private val actionBarHeight: Int
+    private val actionBarHeight: Int,
+    private val modelUsed: Int
 ) : GraphicOverlay.Graphic(overlay) {
     private var mPaint: Paint = Paint()
     private var mFacePaint: Paint = Paint()
@@ -65,7 +66,7 @@ class Draw(
 
         mTextPaint.color = Color.WHITE
         mTextPaint.textSize = DEBUG_TEXT_WIDTH
-        mTextPaint.setShadowLayer(10.0f,0f,0f, Color.BLACK)
+        mTextPaint.setShadowLayer(10.0f, 0f, 0f, Color.BLACK)
         mTextPaint.style = Paint.Style.FILL
 
         mClassificationPaint.color = Color.WHITE
@@ -226,14 +227,23 @@ class Draw(
 
     private fun debugText() {
         mCanvas.drawText(
-            "Res: ${resolution.height} x ${resolution.width}",
+            "RES: ${resolution.height} x ${resolution.width}",
             35f,
             actionBarHeight + 150f,
             mTextPaint
         )
 
         mCanvas.drawText("FPS: ${1000 / fps}", 35f, actionBarHeight + 200f, mTextPaint)
-        mCanvas.drawText("THRESHOLD IFL: ${(thresholdIFL * 100).toInt()}", 35f, actionBarHeight + 250f, mTextPaint)
+        mCanvas.drawText(
+            "THRESHOLD IFL: ${(thresholdIFL * 100).toInt()}",
+            35f,
+            actionBarHeight + 250f,
+            mTextPaint
+        )
+
+        val model = if (modelUsed == 0) "MLKit Fast" else "MLKit Accurate"
+
+        mCanvas.drawText("MODEL: $model", 35f, actionBarHeight + 300f, mTextPaint)
     }
 
     private companion object {

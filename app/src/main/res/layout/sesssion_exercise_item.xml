@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/session_exercise_item_relativeLayout"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:padding="0dp">
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/session_exercise_item_cardView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:clickable="true"
+        android:clipToPadding="false"
+        app:cardBackgroundColor="#555555"
+        app:cardCornerRadius="10dp"
+        app:cardElevation="3dp"
+        app:cardUseCompatPadding="true">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <TextView
+                android:id="@+id/session_exercise_item_parent_exerciseName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="8dp"
+                android:text="Exercise Name"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/session_exercise_item_parent_avgScore"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="8dp"
+                android:text="Avg. Score"
+                android:textSize="16sp"
+                app:layout_constraintBottom_toTopOf="@+id/session_exercise_item_expandable_layout"
+                app:layout_constraintStart_toStartOf="@+id/session_exercise_item_parent_exerciseName"
+                app:layout_constraintTop_toBottomOf="@+id/session_exercise_item_parent_exerciseName" />
+
+            <TextView
+                android:id="@+id/session_exercise_item_parent_repCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
+                android:layout_marginEnd="16dp"
+                android:text="repCount"
+                android:textSize="24sp"
+                app:layout_constraintBottom_toBottomOf="@+id/session_exercise_item_parent_avgScore"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="@+id/session_exercise_item_parent_exerciseName" />
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/session_exercise_item_expandable_layout"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="@+id/session_exercise_item_parent_repCount"
+                app:layout_constraintStart_toStartOf="@+id/session_exercise_item_parent_exerciseName"
+                app:layout_constraintTop_toBottomOf="@+id/session_exercise_item_parent_avgScore">
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/session_exercise_item_recyclerView"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+</RelativeLayout>
