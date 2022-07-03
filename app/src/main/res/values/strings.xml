@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Motion-Fit</string>
+    <string name="app_name">MoFit</string>
 
     <string-array name="Resolutions">
         <item>320x240</item>

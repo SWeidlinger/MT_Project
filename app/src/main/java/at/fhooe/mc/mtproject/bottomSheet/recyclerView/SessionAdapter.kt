@@ -1,35 +1,20 @@
 package at.fhooe.mc.mtproject.bottomSheet.recyclerView
 
 import android.content.Context
-import android.graphics.drawable.Drawable
-import android.os.Handler
-import android.util.Log
-import android.util.Size
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
 import android.widget.RelativeLayout
 import android.widget.TextView
-import androidx.cardview.widget.CardView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.isVisible
-import androidx.core.view.size
-import androidx.recyclerview.widget.DividerItemDecoration
-import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import at.fhooe.mc.mtproject.PoseClassification
 import at.fhooe.mc.mtproject.R
 import at.fhooe.mc.mtproject.helpers.pose.RepetitionCounter
 import com.google.android.material.card.MaterialCardView
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
-import java.text.NumberFormat
 import java.util.*
-import kotlin.collections.ArrayList
 
 class SessionAdapter(private val repCount: ArrayList<RepetitionCounter>) :
     RecyclerView.Adapter<SessionAdapter.SessionViewHolder>() {
@@ -48,10 +33,15 @@ class SessionAdapter(private val repCount: ArrayList<RepetitionCounter>) :
         holder.exerciseNameText.text = getExerciseName(specificRepCount.className)
         holder.repCountText.text = specificRepCount.numRepeats.toString()
 
-        val usFormat = NumberFormat.getInstance(Locale.US)
-        usFormat.maximumFractionDigits = 2
-
-        holder.avgScoreText.text = "Avg. score: ${usFormat.format(specificRepCount.averageScore)}"
+        val averageScore = specificRepCount.averageScore
+        if (averageScore < 0) {
+            holder.avgScoreText.text = "Avg. score: -"
+        } else {
+            holder.avgScoreText.text =
+                "Avg. score: ${
+                    String.format(Locale.US, "%.2f", averageScore)
+                }"
+        }
 
         if (specificRepCount.score.isEmpty()) {
             return
@@ -61,12 +51,6 @@ class SessionAdapter(private val repCount: ArrayList<RepetitionCounter>) :
         holder.nestedRecyclerView.adapter = SessionNestedAdapter(specificRepCount.score)
         holder.nestedRecyclerView.layoutManager =
             LinearLayoutManager(mContext, RecyclerView.HORIZONTAL, false)
-        holder.nestedRecyclerView.addItemDecoration(
-            DividerItemDecoration(
-                mContext,
-                LinearLayoutManager.VERTICAL
-            )
-        )
 
         holder.cardView.setOnClickListener {
             holder.expandableLayout.isVisible = !holder.expandableLayout.isVisible
@@ -81,10 +65,10 @@ class SessionAdapter(private val repCount: ArrayList<RepetitionCounter>) :
                 return "Squats"
             }
             PoseClassification.PUSHUPS_CLASS -> {
-                return "Push-ups"
+                return "Push-Ups"
             }
             PoseClassification.SITUPS_CLASS -> {
-                return "Sit-ups"
+                return "Sit-Ups"
             }
         }
         return "Exercise unknown"

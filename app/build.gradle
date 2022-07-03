@@ -66,4 +66,7 @@ dependencies {
     implementation 'com.google.mlkit:pose-detection-accurate:18.0.0-beta2'
 
     implementation 'com.google.guava:guava:27.1-android'
+
+    //porcupine wake word detection
+    implementation 'ai.picovoice:porcupine-android:2.1.2'
 }

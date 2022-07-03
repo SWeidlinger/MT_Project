@@ -16,7 +16,12 @@
 
 package at.fhooe.mc.mtproject.helpers.pose;
 
+import com.google.mlkit.vision.pose.Pose;
+import com.google.mlkit.vision.pose.PoseLandmark;
+
 import java.util.ArrayList;
+
+import at.fhooe.mc.mtproject.PoseClassification;
 
 /**
  * Counts reps for the give class.
@@ -34,9 +39,8 @@ public class RepetitionCounter {
     private int numRepeats;
     private boolean poseEntered;
 
-    private ArrayList<Integer> score;
-
-    private double averageScore;
+    private ArrayList<Double> score;
+    private ArrayList<Double> angleValues = new ArrayList<>();
 
     public RepetitionCounter(String className) {
         this(className, DEFAULT_ENTER_THRESHOLD, DEFAULT_EXIT_THRESHOLD);
@@ -48,7 +52,7 @@ public class RepetitionCounter {
         this.exitThreshold = exitThreshold;
         numRepeats = 0;
         poseEntered = false;
-        score = new ArrayList<Integer>();
+        score = new ArrayList<Double>();
     }
 
     /**
@@ -57,7 +61,7 @@ public class RepetitionCounter {
      * @param classificationResult {link ClassificationResult} of class to confidence values.
      * @return number of reps.
      */
-    public int addClassificationResult(ClassificationResult classificationResult) {
+    public int addClassificationResult(ClassificationResult classificationResult, Pose pose) {
         float poseConfidence = classificationResult.getClassConfidence(className);
 
         if (!poseEntered) {
@@ -65,12 +69,85 @@ public class RepetitionCounter {
             return numRepeats;
         }
 
+        calculateAngle(pose);
+
         if (poseConfidence < exitThreshold) {
+            checkAngleValues();
             numRepeats++;
             poseEntered = false;
         }
 
         return numRepeats;
+    }
+
+    private void calculateAngle(Pose pose) {
+        if (pose.getAllPoseLandmarks().isEmpty()) {
+            return;
+        }
+
+        switch (className) {
+            case PoseClassification.PUSHUPS_CLASS: {
+                PoseLandmark lShoulder = pose.getPoseLandmark(PoseLandmark.LEFT_SHOULDER);
+                PoseLandmark lHip = pose.getPoseLandmark(PoseLandmark.LEFT_HIP);
+                PoseLandmark lAnkle = pose.getPoseLandmark(PoseLandmark.LEFT_ANKLE);
+
+                PoseLandmark rShoulder = pose.getPoseLandmark(PoseLandmark.RIGHT_SHOULDER);
+                PoseLandmark rHip = pose.getPoseLandmark(PoseLandmark.RIGHT_HIP);
+                PoseLandmark rAnkle = pose.getPoseLandmark(PoseLandmark.RIGHT_ANKLE);
+
+                double lHipAngle = PoseClassification.Companion.getAngle(lShoulder, lHip, lAnkle);
+                double rHipAngle = PoseClassification.Companion.getAngle(rShoulder, rHip, rAnkle);
+
+                angleValues.add(lHipAngle);
+                angleValues.add(rHipAngle);
+
+//                Log.e("LEFT HIP: ", Double.toString(lHipAngle));
+//                Log.e("RIGHT HIP: ", Double.toString(rHipAngle));
+            }
+            break;
+            case PoseClassification.SQUATS_CLASS: {
+                PoseLandmark lHip = pose.getPoseLandmark(PoseLandmark.LEFT_HIP);
+                PoseLandmark lKnee = pose.getPoseLandmark(PoseLandmark.LEFT_KNEE);
+                PoseLandmark lAnkle = pose.getPoseLandmark(PoseLandmark.LEFT_ANKLE);
+
+                PoseLandmark rHip = pose.getPoseLandmark(PoseLandmark.RIGHT_HIP);
+                PoseLandmark rKnee = pose.getPoseLandmark(PoseLandmark.RIGHT_KNEE);
+                PoseLandmark rAnkle = pose.getPoseLandmark(PoseLandmark.RIGHT_ANKLE);
+
+                double lKneeAngle = PoseClassification.Companion.getAngle(lHip, lKnee, lAnkle);
+                double rKneeAngle = PoseClassification.Companion.getAngle(rHip, rKnee, rAnkle);
+
+                angleValues.add(lKneeAngle);
+                angleValues.add(rKneeAngle);
+
+//                Log.e("LEFT KNEE: ", Double.toString(lKneeAngle));
+//                Log.e("RIGHT KNEE: ", Double.toString(rKneeAngle));
+            }
+            break;
+            case PoseClassification.SITUPS_CLASS: {
+
+            }
+            break;
+        }
+    }
+
+    private void checkAngleValues() {
+        switch (className) {
+            case PoseClassification.SQUATS_CLASS: {
+                score.add(calculateScore(105, angleValues));
+                angleValues.clear();
+            }
+            break;
+            case PoseClassification.PUSHUPS_CLASS: {
+                score.add(calculateScore(170, angleValues));
+                angleValues.clear();
+            }
+            break;
+            case PoseClassification.SITUPS_CLASS: {
+                score.add(-1.0);
+            }
+            break;
+        }
     }
 
     public String getClassName() {
@@ -81,33 +158,33 @@ public class RepetitionCounter {
         return numRepeats;
     }
 
-    public ArrayList<Integer> getScore() {
-        score.clear();
-        score.add(5);
-        score.add(7);
-        score.add(10);
-        score.add(2);
-        score.add(2);
-        score.add(2);
-        score.add(2);
-        score.add(2);
-        score.add(2);
-        score.add(2);
-        score.add(2);
-        score.add(2);
-        score.add(2);
+    public ArrayList<Double> getScore() {
         return score;
     }
 
     public double getAverageScore() {
         if (score.isEmpty()) {
-            getScore();
+            return -1;
         }
         double avg = 0;
-        for (int i : score) {
+        int positionsSkipped = 0;
+        for (double i : score) {
+            if (i < 0) {
+                positionsSkipped++;
+            }
             avg += i;
         }
 
-        return avg / score.size();
+        double result = avg / (score.size() - positionsSkipped);
+        return Double.isNaN(result) ? -1 : result;
+    }
+
+    private double calculateScore(Integer thresholdAngle, ArrayList<Double> values) {
+        if (values.isEmpty()) {
+            return 0;
+        }
+        double avg = values.stream().mapToDouble(a -> a).average().getAsDouble();
+
+        return Math.min(1.0, (thresholdAngle / avg)) * 10;
     }
 }

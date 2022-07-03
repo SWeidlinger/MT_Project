@@ -6,20 +6,17 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.core.view.isVisible
-import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import at.fhooe.mc.mtproject.R
 import at.fhooe.mc.mtproject.bottomSheet.recyclerView.SessionAdapter
 import at.fhooe.mc.mtproject.helpers.pose.RepetitionCounter
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
-import java.text.DecimalFormat
 import java.text.NumberFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
-import kotlin.collections.ArrayList
 
-class BottomSheetFragment(repCounter: ArrayList<RepetitionCounter>, workoutTime: Long) :
+class BottomSheetFragmentSession(repCounter: ArrayList<RepetitionCounter>, workoutTime: Long) :
     BottomSheetDialogFragment() {
     private val mRepCounter: ArrayList<RepetitionCounter>
     private val mWorkoutTime: Long
@@ -63,15 +60,24 @@ class BottomSheetFragment(repCounter: ArrayList<RepetitionCounter>, workoutTime:
         mNoWorkoutsDetectedText.isVisible = false
 
         var overallAvgScore = 0.0
+        var exercisesSkipped = 0
         for (i in mRepCounter) {
-            overallAvgScore += i.averageScore
+            if (i.averageScore < 0){
+                exercisesSkipped++
+            }else {
+                overallAvgScore += i.averageScore
+            }
         }
-        overallAvgScore /= mRepCounter.size
+        overallAvgScore /= mRepCounter.size - exercisesSkipped
 
         val usFormat = NumberFormat.getInstance(Locale.US)
         usFormat.maximumFractionDigits = 2
 
-        mOverallAvgScore.text = usFormat.format(overallAvgScore)
+        if (overallAvgScore.isNaN()){
+            mOverallAvgScore.text = "-"
+        }else {
+            mOverallAvgScore.text = String.format(Locale.US, "%.2f", overallAvgScore)
+        }
 
         mRecyclerView.adapter = SessionAdapter(mRepCounter)
         mRecyclerView.layoutManager = LinearLayoutManager(view.context)

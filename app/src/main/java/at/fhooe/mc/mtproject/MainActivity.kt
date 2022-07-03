@@ -3,11 +3,14 @@ package at.fhooe.mc.mtproject
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
+import android.content.ServiceConnection
 import android.content.pm.PackageManager
-import android.media.MediaPlayer
-import android.os.Bundle
-import android.os.SystemClock
+import android.media.AudioManager
+import android.media.ToneGenerator
+import android.os.*
 import android.util.Log
 import android.util.Size
 import android.view.*
@@ -21,13 +24,18 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import at.fhooe.mc.mtproject.bottomSheet.BottomSheetFragment
+import androidx.core.view.isVisible
+import at.fhooe.mc.mtproject.bottomSheet.BottomSheetFragmentSession
 import at.fhooe.mc.mtproject.databinding.ActivityMainBinding
 import at.fhooe.mc.mtproject.helpers.GraphicOverlay
 import at.fhooe.mc.mtproject.helpers.pose.RepetitionCounter
+import at.fhooe.mc.mtproject.speechRecognition.PorcupineService
+import at.fhooe.mc.mtproject.speechRecognition.PorcupineService.LocalBinder
+import at.fhooe.mc.mtproject.speechRecognition.ServiceCallbacks
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.pose.PoseDetection
 import com.google.mlkit.vision.pose.PoseDetector
+import com.google.mlkit.vision.pose.PoseLandmark
 import com.google.mlkit.vision.pose.accurate.AccuratePoseDetectorOptions
 import com.google.mlkit.vision.pose.defaults.PoseDetectorOptions
 import java.util.*
@@ -36,9 +44,8 @@ import java.util.concurrent.Executors
 import kotlin.concurrent.timerTask
 
 private const val TAG = "MainActivity"
-private const val USE_ML_KIT = true
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), ServiceCallbacks {
     private lateinit var binding: ActivityMainBinding
     private lateinit var mCameraExecutor: ExecutorService
     private lateinit var mCameraProvider: ProcessCameraProvider
@@ -56,8 +63,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var mPoseDetector: PoseDetector
     private lateinit var mPoseClassification: PoseClassification
 
-    //Right now classification of Poses is always active
-    //might be interesting to only activate it when a session is started...
     private var mSessionActive = false
     private var mWorkoutStartTime: Long = 0
 
@@ -73,6 +78,32 @@ class MainActivity : AppCompatActivity() {
     private var mSpinnerResolutionID: Int = 1
     private var mSpinnerModelID: Int = 0
 
+    private var mRightKneeAngle: Int = 0
+    private var mLeftKneeAngle: Int = 0
+    private var mRightKneeAngleTwo: Int = 0
+    private var mLeftKneeAngleTwo: Int = 0
+    private var mRightHipAngle: Int = 0
+    private var mLeftHipAngle: Int = 0
+    private var mRightHipAngleTwo: Int = 0
+    private var mLeftHipAngleTwo: Int = 0
+    private var mAngleTimer: Timer? = null
+
+    private var mCountDownTimerSeconds: Long = 3
+    private var mCountDownTimer: CountDownTimer? = null
+
+    var rightHip: PoseLandmark? = null
+    var rightKnee: PoseLandmark? = null
+    var rightAnkle: PoseLandmark? = null
+    var rightShoulder: PoseLandmark? = null
+
+    var leftHip: PoseLandmark? = null
+    var leftKnee: PoseLandmark? = null
+    var leftAnkle: PoseLandmark? = null
+    var leftShoulder: PoseLandmark? = null
+
+    private var mService: PorcupineService? = null
+
+    @SuppressLint("UseCompatLoadingForDrawables")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -86,22 +117,22 @@ class MainActivity : AppCompatActivity() {
         mFpsUpdateTimer.scheduleAtFixedRate(
             timerTask {
                 mFps = mCurrentTime - mPrevTime
-            }, 0, 1000
+            }, 0, 500
         )
 
         mGraphicOverlay = binding.activityMainGraphicOverlay
+        mCameraExecutor = Executors.newSingleThreadExecutor()
+
+        if (mSpinnerModelID != 0) {
+            initPoseDetectionAccurate()
+        } else {
+            initPoseDetectionFast()
+        }
+
         //request camera permissions
         if (allPermissionsGranted()) {
-            mCameraExecutor = Executors.newSingleThreadExecutor()
             mPrevTime = SystemClock.elapsedRealtime()
-            if (mSpinnerModelID != 0) {
-                initPoseDetectionAccurate()
-            } else {
-                initPoseDetectionFast()
-            }
-
             initImageAnalyzer()
-
             startCamera()
         } else {
             ActivityCompat.requestPermissions(this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS)
@@ -110,34 +141,23 @@ class MainActivity : AppCompatActivity() {
         binding.activityMainViewFinder.setOnTouchListener(configureDoubleTap())
 
         binding.activityMainButtonStartSession.setOnClickListener {
-            if (mSessionActive) {
-                showSessionEndSheet()
-                mSessionActive = false
-                binding.activityMainButtonStartSession.text = "Start Session"
-            } else {
-                mSessionActive = true
-                binding.activityMainButtonStartSession.text = "End Session"
-                mWorkoutStartTime = SystemClock.elapsedRealtime()
-            }
-
-//            val tg = ToneGenerator(AudioManager.STREAM_MUSIC,100)
-//            tg.startTone(ToneGenerator.TONE_PROP_BEEP)
-//            tg.release()
-            val mp = MediaPlayer.create(this, R.raw.roblox_death_sound)
-
-            mp.setOnCompletionListener {
-                mp.reset()
-                mp.release()
-            }
-
-            if (mp.isPlaying) {
-                mp.reset()
-                mp.release()
-//                mp = MediaPlayer.create(this, R.raw.roblox_death_sound)
-            }
-
-            mp.start()
+            performSessionAction()
         }
+
+//            val mp = MediaPlayer.create(this, R.raw.roblox_death_sound)
+//
+//            mp.setOnCompletionListener {
+//                mp.reset()
+//                mp.release()
+//            }
+//
+//            if (mp.isPlaying) {
+//                mp.reset()
+//                mp.release()
+////                mp = MediaPlayer.create(this, R.raw.roblox_death_sound)
+//            }
+//
+//            mp.start()
 
         //switch camera on long Press
 //        binding.activityMainViewFinder.setOnLongClickListener{
@@ -146,19 +166,30 @@ class MainActivity : AppCompatActivity() {
 //        }
     }
 
-    override fun onResume() {
-        super.onResume()
-        initImageAnalyzer()
-        startCamera()
+    private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
+        ContextCompat.checkSelfPermission(
+            baseContext, it
+        ) == PackageManager.PERMISSION_GRANTED
     }
 
-    private fun showSessionEndSheet() {
-        val bottomSheet =
-            BottomSheetFragment(
-                mPoseClassification.getRepetitionCounter(),
-                (SystemClock.elapsedRealtime() - mWorkoutStartTime)
-            )
-        bottomSheet.show(supportFragmentManager, BottomSheetFragment.TAG);
+    override fun onRequestPermissionsResult(
+        requestCode: Int, permissions: Array<String>, grantResults:
+        IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_CODE_PERMISSIONS) {
+            if (allPermissionsGranted()) {
+                startCamera()
+                startService()
+            } else {
+                Toast.makeText(
+                    this,
+                    "Permissions not granted by the user.",
+                    Toast.LENGTH_SHORT
+                ).show()
+                finish()
+            }
+        }
     }
 
     private fun getSettings() {
@@ -182,28 +213,18 @@ class MainActivity : AppCompatActivity() {
 
                     mThresholdIFL = result.data!!.getIntExtra("thresholdIFL", 50)
 
-                    when (mSpinnerResolutionID) {
-                        0 -> {
-                            mImageResolution = Size(240, 320)
-                        }
-                        1 -> {
-                            mImageResolution = Size(480, 640)
-                        }
-                        2 -> {
-                            mImageResolution = Size(720, 1280)
-                        }
-                        3 -> {
-                            mImageResolution = Size(1080, 1920)
-                        }
-                    }
+                    mCountDownTimerSeconds = result.data!!.getLongExtra("countDownTimer", 3)
 
+                    when (mSpinnerResolutionID) {
+                        0 -> mImageResolution = Size(240, 320)
+                        1 -> mImageResolution = Size(480, 640)
+                        2 -> mImageResolution = Size(720, 1280)
+                        3 -> mImageResolution = Size(1080, 1920)
+
+                    }
                     when (mSpinnerModelID) {
-                        0 -> {
-                            mModel = "MLKit Normal"
-                        }
-                        1 -> {
-                            mModel = "MLKit Accurate"
-                        }
+                        0 -> mModel = "MLKit Normal"
+                        1 -> mModel = "MLKit Accurate"
                     }
                 }
             }
@@ -216,7 +237,9 @@ class MainActivity : AppCompatActivity() {
                 object : GestureDetector.SimpleOnGestureListener() {
                     override fun onDoubleTap(e: MotionEvent?): Boolean {
                         //vibration for when the camera changes
-                        binding.root.rootView.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                            binding.root.rootView.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                        }
                         switchCameraInput()
                         mGraphicOverlay.clear()
                         return super.onDoubleTap(e)
@@ -230,29 +253,43 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
-        ContextCompat.checkSelfPermission(
-            baseContext, it
-        ) == PackageManager.PERMISSION_GRANTED
+    private fun performSessionAction() {
+        if (mSessionActive) {
+            showSessionEndSheet()
+            mSessionActive = false
+            mCountDownTimer = null
+            binding.activityMainButtonStartSession.setImageResource(R.drawable.ic_baseline_play_arrow_24)
+        } else {
+            if (mCountDownTimer != null) {
+                return
+            }
+            val tg = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
+            binding.activityMainTextFieldCountdown.isVisible = true
+            mCountDownTimer = object : CountDownTimer(mCountDownTimerSeconds * 1000, 1000) {
+                override fun onTick(millisUntilFinished: Long) {
+                    binding.activityMainTextFieldCountdown.text =
+                        "${(millisUntilFinished / 1000) + 1}"
+                    tg.startTone(ToneGenerator.TONE_CDMA_CONFIRM)
+                }
+
+                override fun onFinish() {
+                    binding.activityMainTextFieldCountdown.isVisible = false
+                    mSessionActive = true
+                    binding.activityMainButtonStartSession.setImageResource(R.drawable.ic_baseline_stop_24)
+                    tg.startTone(ToneGenerator.TONE_PROP_NACK)
+                    mWorkoutStartTime = SystemClock.elapsedRealtime()
+                }
+            }.start()
+        }
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int, permissions: Array<String>, grantResults:
-        IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == REQUEST_CODE_PERMISSIONS) {
-            if (allPermissionsGranted()) {
-                startCamera()
-            } else {
-                Toast.makeText(
-                    this,
-                    "Permissions not granted by the user.",
-                    Toast.LENGTH_SHORT
-                ).show()
-                finish()
-            }
-        }
+    private fun showSessionEndSheet() {
+        val bottomSheet =
+            BottomSheetFragmentSession(
+                mPoseClassification.getRepetitionCounter(),
+                (SystemClock.elapsedRealtime() - mWorkoutStartTime)
+            )
+        bottomSheet.show(supportFragmentManager, BottomSheetFragmentSession.TAG);
     }
 
     private fun initPoseDetectionFast() {
@@ -279,7 +316,6 @@ class MainActivity : AppCompatActivity() {
             val rotationDegrees = imageProxy.imageInfo.rotationDegrees
             mUpdateImageSourceInfo = mRotationDegrees != rotationDegrees
             mRotationDegrees = rotationDegrees
-
             val image = imageProxy.image
             if (image != null) {
                 val inputImage = InputImage.fromMediaImage(image, rotationDegrees)
@@ -288,6 +324,7 @@ class MainActivity : AppCompatActivity() {
                     .addOnFailureListener {
                         imageProxy.close()
                     }.addOnSuccessListener { pose ->
+
                         mPrevTime = mCurrentTime
                         mCurrentTime = SystemClock.elapsedRealtime()
                         val frontCameraUsed: Boolean =
@@ -312,22 +349,110 @@ class MainActivity : AppCompatActivity() {
                         }
 
                         var poseClassification: ArrayList<String>? = null
+                        var repCounter: ArrayList<RepetitionCounter>? = null
                         if (mSessionActive) {
                             poseClassification = mPoseClassification.getPoseResult(pose)
+                            if (mDebugMode) {
+                                repCounter = mPoseClassification.getRepetitionCounterFull()
+                            }
                         } else {
                             mPoseClassification.clearRepetitions()
+                            poseClassification?.clear()
+                            repCounter?.clear()
+                        }
+
+                        if (pose.allPoseLandmarks.isNotEmpty()) {
+                            rightHip = pose.getPoseLandmark(PoseLandmark.RIGHT_HIP)!!
+                            rightKnee = pose.getPoseLandmark(PoseLandmark.RIGHT_KNEE)!!
+                            rightAnkle = pose.getPoseLandmark(PoseLandmark.RIGHT_ANKLE)!!
+                            rightShoulder = pose.getPoseLandmark(PoseLandmark.RIGHT_SHOULDER)!!
+
+                            leftHip = pose.getPoseLandmark(PoseLandmark.LEFT_HIP)!!
+                            leftKnee = pose.getPoseLandmark(PoseLandmark.LEFT_KNEE)!!
+                            leftAnkle = pose.getPoseLandmark(PoseLandmark.LEFT_ANKLE)!!
+                            leftShoulder = pose.getPoseLandmark(PoseLandmark.LEFT_SHOULDER)!!
+                        }
+
+                        if (mAngleTimer == null) {
+                            mAngleTimer = Timer()
+                            mAngleTimer?.scheduleAtFixedRate(
+                                timerTask {
+                                    mRightKneeAngle =
+                                        PoseClassification.getAngle(
+                                            rightHip,
+                                            rightKnee,
+                                            rightAnkle
+                                        )
+                                            .toInt()
+                                    mLeftKneeAngle =
+                                        PoseClassification.getAngle(
+                                            leftHip,
+                                            leftKnee,
+                                            leftAnkle
+                                        )
+                                            .toInt()
+
+                                    mRightKneeAngleTwo =
+                                        PoseClassification.getAngleThreeCoordinates(
+                                            rightHip,
+                                            rightKnee,
+                                            rightAnkle
+                                        ).toInt()
+                                    mLeftKneeAngleTwo =
+                                        PoseClassification.getAngleThreeCoordinates(
+                                            leftHip,
+                                            leftKnee,
+                                            leftAnkle
+                                        ).toInt()
+
+                                    mLeftHipAngle =
+                                        PoseClassification.getAngle(
+                                            leftShoulder,
+                                            leftHip,
+                                            leftAnkle
+                                        ).toInt()
+                                    mRightHipAngle =
+                                        PoseClassification.getAngle(
+                                            rightShoulder,
+                                            rightHip,
+                                            rightAnkle
+                                        ).toInt()
+
+                                    mLeftHipAngleTwo =
+                                        PoseClassification.getAngleThreeCoordinates(
+                                            leftShoulder,
+                                            leftHip,
+                                            leftAnkle
+                                        ).toInt()
+                                    mRightHipAngleTwo =
+                                        PoseClassification.getAngleThreeCoordinates(
+                                            rightShoulder,
+                                            rightHip,
+                                            rightAnkle
+                                        ).toInt()
+                                }, 0, 500
+                            )
                         }
 
                         val element = Draw(
                             mGraphicOverlay,
                             pose,
                             poseClassification,
+                            repCounter,
                             mDebugMode,
                             mImageResolution,
                             mFps,
                             mThresholdIFL / 100.0,
                             supportActionBar!!.height,
-                            mSpinnerModelID
+                            mSpinnerModelID,
+                            mLeftKneeAngle,
+                            mRightKneeAngle,
+                            mLeftKneeAngleTwo,
+                            mRightKneeAngleTwo,
+                            mLeftHipAngle,
+                            mRightHipAngle,
+                            mLeftKneeAngleTwo,
+                            mRightKneeAngleTwo
                         )
 
                         mGraphicOverlay.clear()
@@ -385,6 +510,7 @@ class MainActivity : AppCompatActivity() {
                 intent.putExtra("resolution", mSpinnerResolutionID)
                 intent.putExtra("model", mSpinnerModelID)
                 intent.putExtra("thresholdIFL", mThresholdIFL)
+                intent.putExtra("countDownTimer", mCountDownTimerSeconds)
                 mResultLauncher.launch(intent)
             }
             R.id.activity_main_menu_switchCamera -> {
@@ -400,10 +526,59 @@ class MainActivity : AppCompatActivity() {
         return super.onOptionsItemSelected(item)
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (allPermissionsGranted()) {
+            startService()
+            initImageAnalyzer()
+            startCamera()
+        }
+    }
+
+    override fun onPause() {
+        stopService()
+        super.onPause()
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         mCameraExecutor.shutdown()
         mFpsUpdateTimer.cancel()
+        stopService()
+    }
+
+    //Porcupine Service and Service Management
+    private var bound: Boolean = false
+    private val serviceConnection: ServiceConnection = object : ServiceConnection {
+        override fun onServiceConnected(className: ComponentName, service: IBinder) {
+            val binder = service as LocalBinder
+            mService = binder.service
+            mService?.setCallback(this@MainActivity)
+        }
+
+        override fun onServiceDisconnected(arg0: ComponentName) {
+            mService?.setCallback(null)
+            mService = null
+        }
+    }
+
+    private fun startService() {
+        val serviceIntent = Intent(this, PorcupineService::class.java)
+        bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE)
+        bound = true
+        ContextCompat.startForegroundService(this, serviceIntent)
+    }
+
+    private fun stopService() {
+        val serviceIntent = Intent(this, PorcupineService::class.java)
+        if (bound) {
+            unbindService(serviceConnection)
+        }
+        stopService(serviceIntent)
+    }
+
+    override fun startSession() {
+        performSessionAction()
     }
 
     //Permissions Management

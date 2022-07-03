@@ -3,8 +3,6 @@ package at.fhooe.mc.mtproject
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
-import android.util.Size
 import android.view.MenuItem
 import android.widget.ArrayAdapter
 import androidx.appcompat.app.AppCompatActivity
@@ -25,6 +23,10 @@ class SettingsActivity : AppCompatActivity() {
 
         binding.activitySettingsThresholdEditText.setText(
             intent.getIntExtra("thresholdIFL", 50).toString()
+        )
+
+        binding.activitySettingsCountdownEditText.setText(
+            intent.getLongExtra("countDownTimer", 3).toString()
         )
 
         binding.activitySettingsDebugMode.isChecked = intent.getBooleanExtra("debugMode", false)
@@ -68,6 +70,9 @@ class SettingsActivity : AppCompatActivity() {
                         ).putExtra(
                             "thresholdIFL",
                             binding.activitySettingsThresholdEditText.text.toString().toInt()
+                        ).putExtra(
+                            "countDownTimer",
+                            binding.activitySettingsCountdownEditText.text.toString().toLong()
                         )
                 )
                 finish()
@@ -88,6 +93,9 @@ class SettingsActivity : AppCompatActivity() {
             ).putExtra(
                 "thresholdIFL",
                 binding.activitySettingsThresholdEditText.text.toString().toInt()
+            ).putExtra(
+                "countDownTimer",
+                binding.activitySettingsCountdownEditText.text.toString().toLong()
             )
         )
         finish()

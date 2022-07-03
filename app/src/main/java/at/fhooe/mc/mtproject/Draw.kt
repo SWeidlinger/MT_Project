@@ -4,22 +4,31 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.util.Size
+import at.fhooe.mc.mtproject.helpers.GraphicOverlay
+import at.fhooe.mc.mtproject.helpers.pose.RepetitionCounter
 import com.google.mlkit.vision.pose.Pose
 import com.google.mlkit.vision.pose.PoseLandmark
-import at.fhooe.mc.mtproject.helpers.GraphicOverlay
 import java.util.*
-import kotlin.collections.ArrayList
 
 class Draw(
-    var overlay: GraphicOverlay,
+    overlay: GraphicOverlay,
     val pose: Pose,
     private val poseClassificationArray: ArrayList<String>?,
+    private val repCountArray: ArrayList<RepetitionCounter>?,
     var debugMode: Boolean,
     private val resolution: Size,
     private val fps: Long,
     private val thresholdIFL: Double,
     private val actionBarHeight: Int,
-    private val modelUsed: Int
+    private val modelUsed: Int,
+    private val mLeftKneeAngle: Int,
+    private val mRightKneeAngle: Int,
+    private val mLeftKneeAngleTwo: Int,
+    private val mRightKneeAngleTwo: Int,
+    private val mLeftHipAngle: Int,
+    private val mRightHipAngle: Int,
+    private val mLeftHipAngleTwo: Int,
+    private val mRightHipAngleTwo: Int
 ) : GraphicOverlay.Graphic(overlay) {
     private var mPaint: Paint = Paint()
     private var mFacePaint: Paint = Paint()
@@ -71,14 +80,43 @@ class Draw(
 
         mClassificationPaint.color = Color.WHITE
         mClassificationPaint.textSize = POSE_CLASSIFICATION_TEXT_SIZE
+        mClassificationPaint.setShadowLayer(10.0f, 0f, 0f, Color.BLACK)
+        mClassificationPaint.style = Paint.Style.FILL
     }
 
     override fun draw(canvas: Canvas?) {
         if (canvas != null) {
             mCanvas = canvas
         }
+
         if (debugMode) {
             debugText()
+            if (!poseClassificationArray.isNullOrEmpty()) {
+                val classificationX = POSE_CLASSIFICATION_TEXT_SIZE * 0.5f
+                var confidence = "no pose detected"
+                if (poseClassificationArray.size > 1) {
+                    confidence = poseClassificationArray[1]
+                }
+                val classificationY =
+                    canvas?.height!! - (POSE_CLASSIFICATION_TEXT_SIZE * 1.5f)
+                canvas.drawText(
+                    confidence,
+                    classificationX,
+                    classificationY,
+                    mClassificationPaint
+                )
+            }
+            if (!repCountArray.isNullOrEmpty()) {
+                var counter = 2
+                for (i in repCountArray) {
+                    canvas?.drawText(
+                        "${i.className.dropLast(5)}:  ${i.numRepeats}",
+                        POSE_CLASSIFICATION_TEXT_SIZE * 0.5f,
+                        canvas.height - (POSE_CLASSIFICATION_TEXT_SIZE * 1.5f * (counter++).toFloat()),
+                        mClassificationPaint
+                    )
+                }
+            }
         }
 
         val landmarks = pose.allPoseLandmarks
@@ -86,32 +124,20 @@ class Draw(
             return
         }
 
-        if (!poseClassificationArray.isNullOrEmpty()) {
-            val classificationX = POSE_CLASSIFICATION_TEXT_SIZE * 0.5f
-            for (i in poseClassificationArray.indices) {
-                val classificationY =
-                    canvas?.height!! - (POSE_CLASSIFICATION_TEXT_SIZE * 1.5f * (poseClassificationArray.size - i).toFloat())
-                canvas.drawText(
-                    poseClassificationArray[i],
-                    classificationX,
-                    classificationY,
-                    mClassificationPaint
-                )
-            }
-        }
-
         for (landmark in landmarks) {
             if (landmark.inFrameLikelihood >= thresholdIFL) {
-                drawPoint(mCanvas, landmark, mPaint)
-                initLandmarks(mCanvas)
+                if (checkPoint(landmark)) {
+                    drawPoint(mCanvas, landmark, mPaint)
+                }
             }
         }
+        initLandmarks(mCanvas)
     }
 
     private fun initLandmarks(canvas: Canvas) {
         val nose = pose.getPoseLandmark(PoseLandmark.NOSE)
-        val leftyEyeInner = pose.getPoseLandmark(PoseLandmark.LEFT_EYE_INNER)
-        val leftyEye = pose.getPoseLandmark(PoseLandmark.LEFT_EYE)
+        val leftEyeInner = pose.getPoseLandmark(PoseLandmark.LEFT_EYE_INNER)
+        val leftEye = pose.getPoseLandmark(PoseLandmark.LEFT_EYE)
         val leftEyeOuter = pose.getPoseLandmark(PoseLandmark.LEFT_EYE_OUTER)
         val rightEyeInner = pose.getPoseLandmark(PoseLandmark.RIGHT_EYE_INNER)
         val rightEye = pose.getPoseLandmark(PoseLandmark.RIGHT_EYE)
@@ -146,49 +172,52 @@ class Draw(
         val rightFootIndex = pose.getPoseLandmark(PoseLandmark.RIGHT_FOOT_INDEX)
 
         // Face
-        drawLine(canvas, nose, leftyEyeInner, mFacePaint)
-        drawLine(canvas, leftyEyeInner, leftyEye, mFacePaint)
-        drawLine(canvas, leftyEye, leftEyeOuter, mFacePaint)
-        drawLine(canvas, leftEyeOuter, leftEar, mFacePaint)
+        drawLine(canvas, nose, leftEyeInner, mFacePaint)
+        drawLine(canvas, leftEyeInner, leftEye, mFacePaint)
+        drawLine(canvas, leftEye, leftEyeOuter, mFacePaint)
+//        drawLine(canvas, leftEyeOuter, leftEar, mFacePaint)
         drawLine(canvas, nose, rightEyeInner, mFacePaint)
         drawLine(canvas, rightEyeInner, rightEye, mFacePaint)
         drawLine(canvas, rightEye, rightEyeOuter, mFacePaint)
-        drawLine(canvas, rightEyeOuter, rightEar, mFacePaint)
+//        drawLine(canvas, rightEyeOuter, rightEar, mFacePaint)
         drawLine(canvas, leftMouth, rightMouth, mFacePaint)
 
-        //chest
+        // Chest
         drawLine(canvas, leftShoulder, rightShoulder, mChestPaint)
         drawLine(canvas, leftShoulder, leftHip, mChestPaint)
         drawLine(canvas, rightShoulder, rightHip, mChestPaint)
 
-        //Arms
+        // Arms
         drawLine(canvas, leftShoulder, leftElbow, mArmPaint)
         drawLine(canvas, leftElbow, leftWrist, mArmPaint)
         drawLine(canvas, rightShoulder, rightElbow, mArmPaint)
         drawLine(canvas, rightElbow, rightWrist, mArmPaint)
 
-        //Hands
-        drawLine(canvas, leftWrist, leftThumb, mHandPaint)
-        drawLine(canvas, leftWrist, leftPinky, mHandPaint)
-        drawLine(canvas, leftWrist, leftIndex, mHandPaint)
-        drawLine(canvas, leftIndex, leftPinky, mHandPaint)
-        drawLine(canvas, rightWrist, rightThumb, mHandPaint)
-        drawLine(canvas, rightWrist, rightPinky, mHandPaint)
-        drawLine(canvas, rightWrist, rightIndex, mHandPaint)
-        drawLine(canvas, rightIndex, rightPinky, mHandPaint)
+//        // Hands
+//        drawLine(canvas, leftWrist, leftThumb, mHandPaint)
+//        drawLine(canvas, leftWrist, leftPinky, mHandPaint)
+//        drawLine(canvas, leftWrist, leftIndex, mHandPaint)
+//        drawLine(canvas, leftIndex, leftPinky, mHandPaint)
+//        drawLine(canvas, rightWrist, rightThumb, mHandPaint)
+//        drawLine(canvas, rightWrist, rightPinky, mHandPaint)
+//        drawLine(canvas, rightWrist, rightIndex, mHandPaint)
+//        drawLine(canvas, rightIndex, rightPinky, mHandPaint)
 
-        //Legs
+        // Legs
         drawLine(canvas, leftHip, rightHip, mLegPaint)
         drawLine(canvas, leftHip, leftKnee, mLegPaint)
         drawLine(canvas, leftKnee, leftAnkle, mLegPaint)
         drawLine(canvas, rightHip, rightKnee, mLegPaint)
         drawLine(canvas, rightKnee, rightAnkle, mLegPaint)
 
-        //Feet
-        drawLine(canvas, leftAnkle, leftHeel, mFootPaint)
-        drawLine(canvas, leftHeel, leftFootIndex, mFootPaint)
-        drawLine(canvas, rightAnkle, rightHeel, mFootPaint)
-        drawLine(canvas, rightHeel, rightFootIndex, mFootPaint)
+        // Feet
+//        drawLine(canvas, leftAnkle, leftHeel, mFootPaint)
+//        drawLine(canvas, leftHeel, leftFootIndex, mFootPaint)
+//        drawLine(canvas, rightAnkle, rightHeel, mFootPaint)
+//        drawLine(canvas, rightHeel, rightFootIndex, mFootPaint)
+
+//        drawAngleInfo(canvas)
+
     }
 
     private fun drawPoint(canvas: Canvas, landmark: PoseLandmark, paint: Paint) {
@@ -246,10 +275,86 @@ class Draw(
         mCanvas.drawText("MODEL: $model", 35f, actionBarHeight + 300f, mTextPaint)
     }
 
+    private fun drawAngleInfo(canvas: Canvas) {
+        canvas.drawText(
+            "R KNEE:  $mRightKneeAngle",
+            50f,
+            500f,
+            mClassificationPaint
+        )
+
+        canvas.drawText(
+            "L KNEE:  $mLeftKneeAngle",
+            50f,
+            600f,
+            mClassificationPaint
+        )
+
+        canvas.drawText(
+            "R KNEE TWO COORD:  $mRightKneeAngleTwo",
+            50f,
+            700f,
+            mClassificationPaint
+        )
+
+        canvas.drawText(
+            "L KNEE TWO COORD:  $mLeftKneeAngleTwo",
+            50f,
+            800f,
+            mClassificationPaint
+        )
+
+        canvas.drawText(
+            "R HIP:  $mRightHipAngle",
+            50f,
+            900f,
+            mClassificationPaint
+        )
+
+        canvas.drawText(
+            "L HIP:  $mLeftHipAngle",
+            50f,
+            1000f,
+            mClassificationPaint
+        )
+
+        canvas.drawText(
+            "R HIP TWO COORD:  $mRightHipAngleTwo",
+            50f,
+            1100f,
+            mClassificationPaint
+        )
+
+        canvas.drawText(
+            "L HIP TWO COORD:  $mLeftHipAngleTwo",
+            50f,
+            1200f,
+            mClassificationPaint
+        )
+    }
+
+    private fun checkPoint(point: PoseLandmark): Boolean {
+        when (point.landmarkType) {
+            PoseLandmark.LEFT_EAR -> return false
+            PoseLandmark.RIGHT_EAR -> return false
+            PoseLandmark.LEFT_PINKY -> return false
+            PoseLandmark.RIGHT_PINKY -> return false
+            PoseLandmark.LEFT_INDEX -> return false
+            PoseLandmark.RIGHT_INDEX -> return false
+            PoseLandmark.LEFT_THUMB -> return false
+            PoseLandmark.RIGHT_THUMB -> return false
+            PoseLandmark.LEFT_HEEL -> return false
+            PoseLandmark.RIGHT_HEEL -> return false
+            PoseLandmark.LEFT_FOOT_INDEX -> return false
+            PoseLandmark.RIGHT_FOOT_INDEX -> return false
+        }
+        return true
+    }
+
     private companion object {
-        const val DOT_RADIUS = 7.0f
-        const val IN_FRAME_LIKELIHOOD_TEXT_SIZE = 25.0f
-        const val STROKE_WIDTH = 10.0f
+        const val DOT_RADIUS = 5.0f
+        const val IN_FRAME_LIKELIHOOD_TEXT_SIZE = 23.0f
+        const val STROKE_WIDTH = 6.0f
         const val DEBUG_TEXT_WIDTH = 45.0f
         const val POSE_CLASSIFICATION_TEXT_SIZE = 60.0f
     }

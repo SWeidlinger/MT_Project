@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="@color/white">
+  <item android:id="@android:id/background">
+    <vector xmlns:android="http://schemas.android.com/apk/res/android"
+        android:width="50dp"
+        android:height="60dp"
+        android:viewportWidth="500"
+        android:viewportHeight="97.48">
+      <path
+          android:pathData="M141.43,97.91C141.43,97.91 169.92,47.66 184.94,32.64C195.56,22.02 204.09,14.96 217.58,10.88C234.99,5.61 265.45,5.61 282.85,10.88C296.35,14.96 304.87,22.02 315.49,32.64C330.51,47.66 359.01,97.91 359.01,97.91"
+          android:fillColor="#7B00FF"/>
+    </vector>
+  </item>
+</ripple>

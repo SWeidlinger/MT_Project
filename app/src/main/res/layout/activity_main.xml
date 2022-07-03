@@ -6,23 +6,15 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <Button
-        android:id="@+id/activity_main_button_startSession"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="150dp"
-        android:text="Start Session"
-        app:layout_constraintBottom_toBottomOf="@+id/activity_main_viewFinder"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
-
     <androidx.camera.view.PreviewView
         android:id="@+id/activity_main_viewFinder"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:clickable="true"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toTopOf="parent"/>
+        app:layout_constraintTop_toTopOf="parent">
+
+    </androidx.camera.view.PreviewView>
 
     <at.fhooe.mc.mtproject.helpers.GraphicOverlay
         android:id="@+id/activity_main_graphicOverlay"
@@ -32,5 +24,58 @@
         app:layout_constraintLeft_toLeftOf="@id/activity_main_viewFinder"
         app:layout_constraintRight_toRightOf="@id/activity_main_viewFinder"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/activity_main_button_startSession_old"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="-5dp"
+        android:background="@drawable/ic_button"
+        android:contentDescription="Start a new session"
+        android:visibility="gone"
+        app:icon="@drawable/ic_baseline_play_arrow_24"
+        app:iconGravity="textStart"
+        app:iconPadding="0dp"
+        app:iconSize="52dp"
+        app:iconTint="@color/white"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <TextView
+        android:id="@+id/activity_main_textField_countdown"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:shadowColor="#000000"
+        android:shadowDx="10"
+        android:shadowDy="10"
+        android:shadowRadius="10"
+        android:text="-"
+        android:textColor="#FFFFFF"
+        android:textSize="150dp"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:visibility="visible" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/activity_main_button_startSession"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="48dp"
+        android:clickable="true"
+        android:contentDescription="Start a new session"
+        app:backgroundTint="#007EB8"
+        app:fabCustomSize="70dp"
+        app:fabSize="auto"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:maxImageSize="56dp"
+        app:srcCompat="@drawable/ic_baseline_play_arrow_24"
+        app:tint="@android:color/white" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
