@@ -20,15 +20,7 @@ class Draw(
     private val fps: Long,
     private val thresholdIFL: Double,
     private val actionBarHeight: Int,
-    private val modelUsed: Int,
-    private val mLeftKneeAngle: Int,
-    private val mRightKneeAngle: Int,
-    private val mLeftKneeAngleTwo: Int,
-    private val mRightKneeAngleTwo: Int,
-    private val mLeftHipAngle: Int,
-    private val mRightHipAngle: Int,
-    private val mLeftHipAngleTwo: Int,
-    private val mRightHipAngleTwo: Int
+    private val modelUsed: Int
 ) : GraphicOverlay.Graphic(overlay) {
     private var mPaint: Paint = Paint()
     private var mFacePaint: Paint = Paint()
@@ -39,6 +31,9 @@ class Draw(
     private var mFootPaint: Paint = Paint()
     private var mTextPaint: Paint = Paint()
     private var mClassificationPaint: Paint = Paint()
+    private var mPointPaint: Paint = Paint()
+    private var mRightPaint: Paint = Paint()
+    private var mLeftPaint: Paint = Paint()
     private lateinit var mCanvas: Canvas
 
     private var zMin = java.lang.Float.MAX_VALUE
@@ -49,29 +44,45 @@ class Draw(
         mPaint.strokeWidth = STROKE_WIDTH
         mPaint.style = Paint.Style.STROKE
 
-        mFacePaint.color = Color.BLACK
+        mPointPaint.color = Color.WHITE
+        mPointPaint.strokeWidth = STROKE_WIDTH
+        mPointPaint.style = Paint.Style.FILL
+
+        mFacePaint.color = Color.WHITE
         mFacePaint.strokeWidth = STROKE_WIDTH
         mFacePaint.style = Paint.Style.FILL
 
-        mArmPaint.color = Color.RED
+        mArmPaint.color = Color.WHITE
         mArmPaint.strokeWidth = STROKE_WIDTH
         mArmPaint.style = Paint.Style.FILL
 
-        mChestPaint.color = Color.BLUE
+        mChestPaint.color = Color.WHITE
         mChestPaint.strokeWidth = STROKE_WIDTH
         mChestPaint.style = Paint.Style.FILL
 
-        mLegPaint.color = Color.YELLOW
+        mLegPaint.color = Color.WHITE
         mLegPaint.strokeWidth = STROKE_WIDTH
         mLegPaint.style = Paint.Style.FILL
 
-        mHandPaint.color = Color.GREEN
+        mHandPaint.color = Color.WHITE
         mHandPaint.strokeWidth = STROKE_WIDTH
         mHandPaint.style = Paint.Style.FILL
 
-        mFootPaint.color = Color.LTGRAY
+        mFootPaint.color = Color.WHITE
         mFootPaint.strokeWidth = STROKE_WIDTH
         mFootPaint.style = Paint.Style.FILL
+
+        mFootPaint.color = Color.WHITE
+        mFootPaint.strokeWidth = STROKE_WIDTH
+        mFootPaint.style = Paint.Style.FILL
+
+        mRightPaint.color = Color.RED
+        mRightPaint.strokeWidth = STROKE_WIDTH
+        mRightPaint.style = Paint.Style.FILL
+
+        mLeftPaint.color = Color.parseColor("#007EB8")
+        mLeftPaint.strokeWidth = STROKE_WIDTH
+        mLeftPaint.style = Paint.Style.FILL
 
         mTextPaint.color = Color.WHITE
         mTextPaint.textSize = DEBUG_TEXT_WIDTH
@@ -124,14 +135,13 @@ class Draw(
             return
         }
 
+        initLandmarks(mCanvas)
+
         for (landmark in landmarks) {
-            if (landmark.inFrameLikelihood >= thresholdIFL) {
-                if (checkPoint(landmark)) {
-                    drawPoint(mCanvas, landmark, mPaint)
-                }
+            if (checkPoint(landmark)) {
+                drawPoint(mCanvas, landmark, mPointPaint)
             }
         }
-        initLandmarks(mCanvas)
     }
 
     private fun initLandmarks(canvas: Canvas) {
@@ -172,13 +182,13 @@ class Draw(
         val rightFootIndex = pose.getPoseLandmark(PoseLandmark.RIGHT_FOOT_INDEX)
 
         // Face
-        drawLine(canvas, nose, leftEyeInner, mFacePaint)
-        drawLine(canvas, leftEyeInner, leftEye, mFacePaint)
-        drawLine(canvas, leftEye, leftEyeOuter, mFacePaint)
+        drawLine(canvas, nose, leftEyeInner, mLeftPaint)
+        drawLine(canvas, leftEyeInner, leftEye, mLeftPaint)
+        drawLine(canvas, leftEye, leftEyeOuter, mLeftPaint)
 //        drawLine(canvas, leftEyeOuter, leftEar, mFacePaint)
-        drawLine(canvas, nose, rightEyeInner, mFacePaint)
-        drawLine(canvas, rightEyeInner, rightEye, mFacePaint)
-        drawLine(canvas, rightEye, rightEyeOuter, mFacePaint)
+        drawLine(canvas, nose, rightEyeInner, mRightPaint)
+        drawLine(canvas, rightEyeInner, rightEye, mRightPaint)
+        drawLine(canvas, rightEye, rightEyeOuter, mRightPaint)
 //        drawLine(canvas, rightEyeOuter, rightEar, mFacePaint)
         drawLine(canvas, leftMouth, rightMouth, mFacePaint)
 
@@ -188,10 +198,10 @@ class Draw(
         drawLine(canvas, rightShoulder, rightHip, mChestPaint)
 
         // Arms
-        drawLine(canvas, leftShoulder, leftElbow, mArmPaint)
-        drawLine(canvas, leftElbow, leftWrist, mArmPaint)
-        drawLine(canvas, rightShoulder, rightElbow, mArmPaint)
-        drawLine(canvas, rightElbow, rightWrist, mArmPaint)
+        drawLine(canvas, leftShoulder, leftElbow, mLeftPaint)
+        drawLine(canvas, leftElbow, leftWrist, mLeftPaint)
+        drawLine(canvas, rightShoulder, rightElbow, mRightPaint)
+        drawLine(canvas, rightElbow, rightWrist, mRightPaint)
 
 //        // Hands
 //        drawLine(canvas, leftWrist, leftThumb, mHandPaint)
@@ -205,35 +215,34 @@ class Draw(
 
         // Legs
         drawLine(canvas, leftHip, rightHip, mLegPaint)
-        drawLine(canvas, leftHip, leftKnee, mLegPaint)
-        drawLine(canvas, leftKnee, leftAnkle, mLegPaint)
-        drawLine(canvas, rightHip, rightKnee, mLegPaint)
-        drawLine(canvas, rightKnee, rightAnkle, mLegPaint)
+        drawLine(canvas, leftHip, leftKnee, mLeftPaint)
+        drawLine(canvas, leftKnee, leftAnkle, mLeftPaint)
+        drawLine(canvas, rightHip, rightKnee, mRightPaint)
+        drawLine(canvas, rightKnee, rightAnkle, mRightPaint)
 
         // Feet
 //        drawLine(canvas, leftAnkle, leftHeel, mFootPaint)
 //        drawLine(canvas, leftHeel, leftFootIndex, mFootPaint)
 //        drawLine(canvas, rightAnkle, rightHeel, mFootPaint)
 //        drawLine(canvas, rightHeel, rightFootIndex, mFootPaint)
-
-//        drawAngleInfo(canvas)
-
     }
 
     private fun drawPoint(canvas: Canvas, landmark: PoseLandmark, paint: Paint) {
-        val point = landmark.position3D
-        canvas.drawCircle(translateX(point.x), translateY(point.y), DOT_RADIUS, paint)
-        if (debugMode) {
-            val paintDebug = Paint()
-            paintDebug.color = Color.GREEN
-            paintDebug.textSize = IN_FRAME_LIKELIHOOD_TEXT_SIZE
+        if (landmark.inFrameLikelihood >= thresholdIFL) {
+            val point = landmark.position3D
+            canvas.drawCircle(translateX(point.x), translateY(point.y), DOT_RADIUS, paint)
+            if (debugMode) {
+                val paintDebug = Paint()
+                paintDebug.color = Color.GREEN
+                paintDebug.textSize = IN_FRAME_LIKELIHOOD_TEXT_SIZE
 
-            canvas.drawText(
-                String.format(Locale.US, "%.2f", landmark.inFrameLikelihood),
-                translateX(landmark.position.x + 5),
-                translateY(landmark.position.y + 20),
-                paintDebug
-            )
+                canvas.drawText(
+                    String.format(Locale.US, "%.2f", landmark.inFrameLikelihood),
+                    translateX(landmark.position.x + 5),
+                    translateY(landmark.position.y + 20),
+                    paintDebug
+                )
+            }
         }
     }
 
@@ -243,15 +252,18 @@ class Draw(
         endLandmark: PoseLandmark?,
         paint: Paint
     ) {
-        val start = startLandmark!!.position3D
-        val end = endLandmark!!.position3D
-        canvas.drawLine(
-            translateX(start.x),
-            translateY(start.y),
-            translateX(end.x),
-            translateY(end.y),
-            paint
-        )
+        if (startLandmark != null && endLandmark != null && startLandmark.inFrameLikelihood >= thresholdIFL && endLandmark.inFrameLikelihood >= thresholdIFL) {
+            val start = startLandmark.position3D
+            val end = endLandmark.position3D
+
+            canvas.drawLine(
+                translateX(start.x),
+                translateY(start.y),
+                translateX(end.x),
+                translateY(end.y),
+                paint
+            )
+        }
     }
 
     private fun debugText() {
@@ -275,64 +287,6 @@ class Draw(
         mCanvas.drawText("MODEL: $model", 35f, actionBarHeight + 300f, mTextPaint)
     }
 
-    private fun drawAngleInfo(canvas: Canvas) {
-        canvas.drawText(
-            "R KNEE:  $mRightKneeAngle",
-            50f,
-            500f,
-            mClassificationPaint
-        )
-
-        canvas.drawText(
-            "L KNEE:  $mLeftKneeAngle",
-            50f,
-            600f,
-            mClassificationPaint
-        )
-
-        canvas.drawText(
-            "R KNEE TWO COORD:  $mRightKneeAngleTwo",
-            50f,
-            700f,
-            mClassificationPaint
-        )
-
-        canvas.drawText(
-            "L KNEE TWO COORD:  $mLeftKneeAngleTwo",
-            50f,
-            800f,
-            mClassificationPaint
-        )
-
-        canvas.drawText(
-            "R HIP:  $mRightHipAngle",
-            50f,
-            900f,
-            mClassificationPaint
-        )
-
-        canvas.drawText(
-            "L HIP:  $mLeftHipAngle",
-            50f,
-            1000f,
-            mClassificationPaint
-        )
-
-        canvas.drawText(
-            "R HIP TWO COORD:  $mRightHipAngleTwo",
-            50f,
-            1100f,
-            mClassificationPaint
-        )
-
-        canvas.drawText(
-            "L HIP TWO COORD:  $mLeftHipAngleTwo",
-            50f,
-            1200f,
-            mClassificationPaint
-        )
-    }
-
     private fun checkPoint(point: PoseLandmark): Boolean {
         when (point.landmarkType) {
             PoseLandmark.LEFT_EAR -> return false
@@ -352,7 +306,7 @@ class Draw(
     }
 
     private companion object {
-        const val DOT_RADIUS = 5.0f
+        const val DOT_RADIUS = 7.0f
         const val IN_FRAME_LIKELIHOOD_TEXT_SIZE = 23.0f
         const val STROKE_WIDTH = 6.0f
         const val DEBUG_TEXT_WIDTH = 45.0f

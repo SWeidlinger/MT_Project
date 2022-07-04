@@ -3,13 +3,9 @@ package at.fhooe.mc.mtproject
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
-import android.content.ComponentName
-import android.content.Context
-import android.content.Intent
-import android.content.ServiceConnection
+import android.content.*
 import android.content.pm.PackageManager
-import android.media.AudioManager
-import android.media.ToneGenerator
+import android.media.MediaPlayer
 import android.os.*
 import android.util.Log
 import android.util.Size
@@ -78,32 +74,17 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
     private var mSpinnerResolutionID: Int = 1
     private var mSpinnerModelID: Int = 0
 
-    private var mRightKneeAngle: Int = 0
-    private var mLeftKneeAngle: Int = 0
-    private var mRightKneeAngleTwo: Int = 0
-    private var mLeftKneeAngleTwo: Int = 0
-    private var mRightHipAngle: Int = 0
-    private var mLeftHipAngle: Int = 0
-    private var mRightHipAngleTwo: Int = 0
-    private var mLeftHipAngleTwo: Int = 0
-    private var mAngleTimer: Timer? = null
-
     private var mCountDownTimerSeconds: Long = 3
     private var mCountDownTimer: CountDownTimer? = null
 
-    var rightHip: PoseLandmark? = null
-    var rightKnee: PoseLandmark? = null
-    var rightAnkle: PoseLandmark? = null
-    var rightShoulder: PoseLandmark? = null
-
-    var leftHip: PoseLandmark? = null
-    var leftKnee: PoseLandmark? = null
-    var leftAnkle: PoseLandmark? = null
-    var leftShoulder: PoseLandmark? = null
-
     private var mService: PorcupineService? = null
 
-    @SuppressLint("UseCompatLoadingForDrawables")
+    private var mBottomSheetVisible = false
+
+    private lateinit var mMediaPlayerCountdownStart: MediaPlayer
+    private lateinit var mMediaPlayerSessionFinished: MediaPlayer
+    private lateinit var mMediaPlayerSessionStart: MediaPlayer
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -140,24 +121,13 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
 
         binding.activityMainViewFinder.setOnTouchListener(configureDoubleTap())
 
+        mMediaPlayerCountdownStart = MediaPlayer.create(this, R.raw.countdown_beep)
+        mMediaPlayerSessionStart = MediaPlayer.create(this, R.raw.session_start)
+        mMediaPlayerSessionFinished = MediaPlayer.create(this, R.raw.session_finished)
+
         binding.activityMainButtonStartSession.setOnClickListener {
             performSessionAction()
         }
-
-//            val mp = MediaPlayer.create(this, R.raw.roblox_death_sound)
-//
-//            mp.setOnCompletionListener {
-//                mp.reset()
-//                mp.release()
-//            }
-//
-//            if (mp.isPlaying) {
-//                mp.reset()
-//                mp.release()
-////                mp = MediaPlayer.create(this, R.raw.roblox_death_sound)
-//            }
-//
-//            mp.start()
 
         //switch camera on long Press
 //        binding.activityMainViewFinder.setOnLongClickListener{
@@ -258,38 +228,52 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
             showSessionEndSheet()
             mSessionActive = false
             mCountDownTimer = null
+            mMediaPlayerSessionFinished.start()
             binding.activityMainButtonStartSession.setImageResource(R.drawable.ic_baseline_play_arrow_24)
+            binding.activityMainButtonStartSession.backgroundTintList = getColorStateList(R.color.start_blue)
         } else {
             if (mCountDownTimer != null) {
                 return
             }
-            val tg = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
             binding.activityMainTextFieldCountdown.isVisible = true
             mCountDownTimer = object : CountDownTimer(mCountDownTimerSeconds * 1000, 1000) {
                 override fun onTick(millisUntilFinished: Long) {
                     binding.activityMainTextFieldCountdown.text =
                         "${(millisUntilFinished / 1000) + 1}"
-                    tg.startTone(ToneGenerator.TONE_CDMA_CONFIRM)
+                    mMediaPlayerCountdownStart.start()
                 }
 
                 override fun onFinish() {
                     binding.activityMainTextFieldCountdown.isVisible = false
                     mSessionActive = true
                     binding.activityMainButtonStartSession.setImageResource(R.drawable.ic_baseline_stop_24)
-                    tg.startTone(ToneGenerator.TONE_PROP_NACK)
+                    binding.activityMainButtonStartSession.backgroundTintList = getColorStateList(R.color.stop_gray)
+                    mMediaPlayerSessionStart.start()
                     mWorkoutStartTime = SystemClock.elapsedRealtime()
                 }
             }.start()
         }
     }
 
+    interface BottomSheetFragmentSessionListener {
+        fun isDismissed();
+    }
+
     private fun showSessionEndSheet() {
+        mBottomSheetVisible = true
+        val listener = object : BottomSheetFragmentSessionListener {
+            override fun isDismissed() {
+                mBottomSheetVisible = false
+            }
+        }
+
         val bottomSheet =
             BottomSheetFragmentSession(
                 mPoseClassification.getRepetitionCounter(),
-                (SystemClock.elapsedRealtime() - mWorkoutStartTime)
+                (SystemClock.elapsedRealtime() - mWorkoutStartTime),
+                listener
             )
-        bottomSheet.show(supportFragmentManager, BottomSheetFragmentSession.TAG);
+        bottomSheet.show(supportFragmentManager, BottomSheetFragmentSession.TAG)
     }
 
     private fun initPoseDetectionFast() {
@@ -324,7 +308,6 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
                     .addOnFailureListener {
                         imageProxy.close()
                     }.addOnSuccessListener { pose ->
-
                         mPrevTime = mCurrentTime
                         mCurrentTime = SystemClock.elapsedRealtime()
                         val frontCameraUsed: Boolean =
@@ -361,79 +344,6 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
                             repCounter?.clear()
                         }
 
-                        if (pose.allPoseLandmarks.isNotEmpty()) {
-                            rightHip = pose.getPoseLandmark(PoseLandmark.RIGHT_HIP)!!
-                            rightKnee = pose.getPoseLandmark(PoseLandmark.RIGHT_KNEE)!!
-                            rightAnkle = pose.getPoseLandmark(PoseLandmark.RIGHT_ANKLE)!!
-                            rightShoulder = pose.getPoseLandmark(PoseLandmark.RIGHT_SHOULDER)!!
-
-                            leftHip = pose.getPoseLandmark(PoseLandmark.LEFT_HIP)!!
-                            leftKnee = pose.getPoseLandmark(PoseLandmark.LEFT_KNEE)!!
-                            leftAnkle = pose.getPoseLandmark(PoseLandmark.LEFT_ANKLE)!!
-                            leftShoulder = pose.getPoseLandmark(PoseLandmark.LEFT_SHOULDER)!!
-                        }
-
-                        if (mAngleTimer == null) {
-                            mAngleTimer = Timer()
-                            mAngleTimer?.scheduleAtFixedRate(
-                                timerTask {
-                                    mRightKneeAngle =
-                                        PoseClassification.getAngle(
-                                            rightHip,
-                                            rightKnee,
-                                            rightAnkle
-                                        )
-                                            .toInt()
-                                    mLeftKneeAngle =
-                                        PoseClassification.getAngle(
-                                            leftHip,
-                                            leftKnee,
-                                            leftAnkle
-                                        )
-                                            .toInt()
-
-                                    mRightKneeAngleTwo =
-                                        PoseClassification.getAngleThreeCoordinates(
-                                            rightHip,
-                                            rightKnee,
-                                            rightAnkle
-                                        ).toInt()
-                                    mLeftKneeAngleTwo =
-                                        PoseClassification.getAngleThreeCoordinates(
-                                            leftHip,
-                                            leftKnee,
-                                            leftAnkle
-                                        ).toInt()
-
-                                    mLeftHipAngle =
-                                        PoseClassification.getAngle(
-                                            leftShoulder,
-                                            leftHip,
-                                            leftAnkle
-                                        ).toInt()
-                                    mRightHipAngle =
-                                        PoseClassification.getAngle(
-                                            rightShoulder,
-                                            rightHip,
-                                            rightAnkle
-                                        ).toInt()
-
-                                    mLeftHipAngleTwo =
-                                        PoseClassification.getAngleThreeCoordinates(
-                                            leftShoulder,
-                                            leftHip,
-                                            leftAnkle
-                                        ).toInt()
-                                    mRightHipAngleTwo =
-                                        PoseClassification.getAngleThreeCoordinates(
-                                            rightShoulder,
-                                            rightHip,
-                                            rightAnkle
-                                        ).toInt()
-                                }, 0, 500
-                            )
-                        }
-
                         val element = Draw(
                             mGraphicOverlay,
                             pose,
@@ -444,19 +354,13 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
                             mFps,
                             mThresholdIFL / 100.0,
                             supportActionBar!!.height,
-                            mSpinnerModelID,
-                            mLeftKneeAngle,
-                            mRightKneeAngle,
-                            mLeftKneeAngleTwo,
-                            mRightKneeAngleTwo,
-                            mLeftHipAngle,
-                            mRightHipAngle,
-                            mLeftKneeAngleTwo,
-                            mRightKneeAngleTwo
+                            mSpinnerModelID
                         )
 
                         mGraphicOverlay.clear()
                         mGraphicOverlay.add(element)
+
+//                        mPreview.setSurfaceProvider(binding.activityMainViewFinder.surfaceProvider)
 
                         imageProxy.close()
                     }
@@ -489,7 +393,7 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
                 mCameraProvider.unbindAll()
                 // Bind use cases to camera
                 mCameraProvider.bindToLifecycle(
-                    this, mCameraSelector, mPreview, mImageAnalyzer
+                    this, mCameraSelector, mImageAnalyzer, mPreview
                 )
             } catch (exc: Exception) {
                 Log.e(TAG, "Use case binding failed", exc)
@@ -545,6 +449,9 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
         mCameraExecutor.shutdown()
         mFpsUpdateTimer.cancel()
         stopService()
+        mMediaPlayerCountdownStart.release()
+        mMediaPlayerSessionStart.release()
+        mMediaPlayerSessionFinished.release()
     }
 
     //Porcupine Service and Service Management
@@ -578,7 +485,9 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
     }
 
     override fun startSession() {
-        performSessionAction()
+        if (!mBottomSheetVisible) {
+            performSessionAction()
+        }
     }
 
     //Permissions Management

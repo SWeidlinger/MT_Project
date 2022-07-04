@@ -1,5 +1,6 @@
 package at.fhooe.mc.mtproject.bottomSheet
 
+import android.content.DialogInterface
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -8,6 +9,7 @@ import android.widget.TextView
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import at.fhooe.mc.mtproject.MainActivity
 import at.fhooe.mc.mtproject.R
 import at.fhooe.mc.mtproject.bottomSheet.recyclerView.SessionAdapter
 import at.fhooe.mc.mtproject.helpers.pose.RepetitionCounter
@@ -16,7 +18,11 @@ import java.text.NumberFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
 
-class BottomSheetFragmentSession(repCounter: ArrayList<RepetitionCounter>, workoutTime: Long) :
+class BottomSheetFragmentSession(
+    repCounter: ArrayList<RepetitionCounter>,
+    workoutTime: Long,
+    val listener: MainActivity.BottomSheetFragmentSessionListener
+) :
     BottomSheetDialogFragment() {
     private val mRepCounter: ArrayList<RepetitionCounter>
     private val mWorkoutTime: Long
@@ -62,9 +68,9 @@ class BottomSheetFragmentSession(repCounter: ArrayList<RepetitionCounter>, worko
         var overallAvgScore = 0.0
         var exercisesSkipped = 0
         for (i in mRepCounter) {
-            if (i.averageScore < 0){
+            if (i.averageScore < 0) {
                 exercisesSkipped++
-            }else {
+            } else {
                 overallAvgScore += i.averageScore
             }
         }
@@ -73,15 +79,20 @@ class BottomSheetFragmentSession(repCounter: ArrayList<RepetitionCounter>, worko
         val usFormat = NumberFormat.getInstance(Locale.US)
         usFormat.maximumFractionDigits = 2
 
-        if (overallAvgScore.isNaN()){
+        if (overallAvgScore.isNaN()) {
             mOverallAvgScore.text = "-"
-        }else {
+        } else {
             mOverallAvgScore.text = String.format(Locale.US, "%.2f", overallAvgScore)
         }
 
         mRecyclerView.adapter = SessionAdapter(mRepCounter)
         mRecyclerView.layoutManager = LinearLayoutManager(view.context)
         mRecyclerView.isNestedScrollingEnabled = true
+    }
+
+    override fun onDismiss(dialog: DialogInterface) {
+        super.onDismiss(dialog)
+        listener.isDismissed()
     }
 
     companion object {

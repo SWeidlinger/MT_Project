@@ -16,6 +16,8 @@
 
 package at.fhooe.mc.mtproject.helpers.pose;
 
+import android.util.Log;
+
 import com.google.mlkit.vision.pose.Pose;
 import com.google.mlkit.vision.pose.PoseLandmark;
 
@@ -41,6 +43,7 @@ public class RepetitionCounter {
 
     private ArrayList<Double> score;
     private ArrayList<Double> angleValues = new ArrayList<>();
+    private ArrayList<Double> angleValuesElbow = new ArrayList<>();
 
     public RepetitionCounter(String className) {
         this(className, DEFAULT_ENTER_THRESHOLD, DEFAULT_EXIT_THRESHOLD);
@@ -95,14 +98,22 @@ public class RepetitionCounter {
                 PoseLandmark rHip = pose.getPoseLandmark(PoseLandmark.RIGHT_HIP);
                 PoseLandmark rAnkle = pose.getPoseLandmark(PoseLandmark.RIGHT_ANKLE);
 
+                PoseLandmark lWrist = pose.getPoseLandmark(PoseLandmark.LEFT_WRIST);
+                PoseLandmark rWrist = pose.getPoseLandmark(PoseLandmark.RIGHT_WRIST);
+                PoseLandmark lElbow = pose.getPoseLandmark(PoseLandmark.LEFT_ELBOW);
+                PoseLandmark rElbow = pose.getPoseLandmark(PoseLandmark.RIGHT_ELBOW);
+
                 double lHipAngle = PoseClassification.Companion.getAngle(lShoulder, lHip, lAnkle);
                 double rHipAngle = PoseClassification.Companion.getAngle(rShoulder, rHip, rAnkle);
+
+                double lElbowAngle = PoseClassification.Companion.getAngle(lShoulder, lElbow, lWrist);
+                double rElbowAngle = PoseClassification.Companion.getAngle(rShoulder, rElbow, rWrist);
 
                 angleValues.add(lHipAngle);
                 angleValues.add(rHipAngle);
 
-//                Log.e("LEFT HIP: ", Double.toString(lHipAngle));
-//                Log.e("RIGHT HIP: ", Double.toString(rHipAngle));
+                angleValuesElbow.add(rElbowAngle);
+                angleValuesElbow.add(lElbowAngle);
             }
             break;
             case PoseClassification.SQUATS_CLASS: {
@@ -134,13 +145,14 @@ public class RepetitionCounter {
     private void checkAngleValues() {
         switch (className) {
             case PoseClassification.SQUATS_CLASS: {
-                score.add(calculateScore(105, angleValues));
+                score.add(calculateScore(100, angleValues));
                 angleValues.clear();
             }
             break;
             case PoseClassification.PUSHUPS_CLASS: {
-                score.add(calculateScore(170, angleValues));
+                score.add((calculateScore(175, angleValues) + calculateScore(90, angleValuesElbow)) / 2);
                 angleValues.clear();
+                angleValuesElbow.clear();
             }
             break;
             case PoseClassification.SITUPS_CLASS: {

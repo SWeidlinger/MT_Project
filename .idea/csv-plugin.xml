@@ -10,7 +10,21 @@
             </Attribute>
           </value>
         </entry>
-        <entry key="\app\src\main\assets\pose\situps.csv">
+        <entry key="\app\src\main\assets\pose\situps_10_samples.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\app\src\main\assets\pose\situps_30_samples.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\app\src\main\assets\pose\situps_full_model.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />

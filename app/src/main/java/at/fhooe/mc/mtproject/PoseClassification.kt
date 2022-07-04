@@ -1,8 +1,7 @@
 package at.fhooe.mc.mtproject
 
 import android.content.Context
-import android.media.AudioManager
-import android.media.ToneGenerator
+import android.media.MediaPlayer
 import at.fhooe.mc.mtproject.helpers.pose.EMASmoothing
 import at.fhooe.mc.mtproject.helpers.pose.PoseClassifier
 import at.fhooe.mc.mtproject.helpers.pose.PoseSample
@@ -24,6 +23,8 @@ class PoseClassification(context: Context) {
     private val mPoseSampleArray = ArrayList<PoseSample>()
     private val mContext: Context
 
+    private lateinit var mRepCountSound: MediaPlayer
+
     init {
         mContext = context
         loadPoseSamples(context)
@@ -31,6 +32,7 @@ class PoseClassification(context: Context) {
 
     private fun loadPoseSamples(context: Context) {
         if (mPoseSampleArray.isEmpty()) {
+            mRepCountSound = MediaPlayer.create(mContext, R.raw.rep_count)
             val file = BufferedReader(InputStreamReader(context.assets.open(POSE_SAMPLES_FILE)))
             file.forEachLine {
                 it.let {
@@ -63,9 +65,7 @@ class PoseClassification(context: Context) {
             val repsBefore = repCount.numRepeats
             val repsAfter = repCount.addClassificationResult(classification, pose)
             if (repsAfter > repsBefore) {
-                val tg = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
-                tg.startTone(ToneGenerator.TONE_PROP_BEEP)
-                tg.release()
+                mRepCountSound.start()
                 mLastRepResult = String.format(
                     Locale.US,
                     "%s : %d reps",
@@ -129,7 +129,7 @@ class PoseClassification(context: Context) {
                     firstPoint.position.x - midPoint.position.x
                 )
             )
-            result = Math.abs(result) // Angle should never be negative
+            result = abs(result) // Angle should never be negative
             if (result > 180) {
                 result = 360.0 - result // Always get the acute representation of the angle
             }

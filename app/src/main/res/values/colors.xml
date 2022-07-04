@@ -8,4 +8,6 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="semi_transparent">#5E000000</color>
+    <color name="start_blue">#007EB8</color>
+    <color name="stop_gray">#313131</color>
 </resources>
