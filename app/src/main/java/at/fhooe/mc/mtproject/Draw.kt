@@ -182,13 +182,13 @@ class Draw(
         val rightFootIndex = pose.getPoseLandmark(PoseLandmark.RIGHT_FOOT_INDEX)
 
         // Face
-        drawLine(canvas, nose, leftEyeInner, mLeftPaint)
-        drawLine(canvas, leftEyeInner, leftEye, mLeftPaint)
-        drawLine(canvas, leftEye, leftEyeOuter, mLeftPaint)
+        drawLine(canvas, nose, leftEyeInner, mFacePaint)
+        drawLine(canvas, leftEyeInner, leftEye, mFacePaint)
+        drawLine(canvas, leftEye, leftEyeOuter, mFacePaint)
 //        drawLine(canvas, leftEyeOuter, leftEar, mFacePaint)
-        drawLine(canvas, nose, rightEyeInner, mRightPaint)
-        drawLine(canvas, rightEyeInner, rightEye, mRightPaint)
-        drawLine(canvas, rightEye, rightEyeOuter, mRightPaint)
+        drawLine(canvas, nose, rightEyeInner, mFacePaint)
+        drawLine(canvas, rightEyeInner, rightEye, mFacePaint)
+        drawLine(canvas, rightEye, rightEyeOuter, mFacePaint)
 //        drawLine(canvas, rightEyeOuter, rightEar, mFacePaint)
         drawLine(canvas, leftMouth, rightMouth, mFacePaint)
 
