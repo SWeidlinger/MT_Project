@@ -14,3 +14,5 @@ Exercises currently supported: Push-Ups, Sit-Ups and Squats
 <img src="https://user-images.githubusercontent.com/83772339/183258808-f12b8a5a-a09c-4330-ad9a-d50b3ab1a828.gif" width="250" height="500">
 <img src="https://user-images.githubusercontent.com/83772339/183258811-8555022f-a9c5-4fcb-addb-56779f15c432.gif" width="250" height="500">
 <img src="https://user-images.githubusercontent.com/83772339/183258960-2f18ca59-168b-40fa-9716-620f1e3397a8.gif" width="250" height="500">
+
+https://user-images.githubusercontent.com/83772339/189123224-11ee0aca-42ea-4f1b-bf36-d28107413ef9.mp4
