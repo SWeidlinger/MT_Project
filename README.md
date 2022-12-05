@@ -1,5 +1,5 @@
 # MoFit
-This application is being devoloped as part of my bachelors thesis. It utilizes machine learning (ML Kit) in order to recognize fitness exercises and rate the execution of the repetitions based on different metrics. 
+This application is being developed as part of my bachelors thesis. It utilizes machine learning (ML Kit) in order to recognize fitness exercises and rate the execution of the repetitions based on different metrics. 
 
 Exercises currently supported: Push-Ups, Sit-Ups and Squats
 
