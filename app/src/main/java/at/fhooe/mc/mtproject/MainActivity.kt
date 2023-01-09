@@ -205,7 +205,7 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
         return object : View.OnTouchListener {
             private val gestureDetector = GestureDetector(this@MainActivity,
                 object : GestureDetector.SimpleOnGestureListener() {
-                    override fun onDoubleTap(e: MotionEvent?): Boolean {
+                    override fun onDoubleTap(e: MotionEvent): Boolean {
                         //vibration for when the camera changes
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                             binding.root.rootView.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
@@ -216,7 +216,7 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
                     }
                 })
 
-            override fun onTouch(p0: View?, p1: MotionEvent?): Boolean {
+            override fun onTouch(p0: View?, p1: MotionEvent): Boolean {
                 gestureDetector.onTouchEvent(p1)
                 return true;
             }
@@ -230,7 +230,8 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
             mCountDownTimer = null
             mMediaPlayerSessionFinished.start()
             binding.activityMainButtonStartSession.setImageResource(R.drawable.ic_baseline_play_arrow_24)
-            binding.activityMainButtonStartSession.backgroundTintList = getColorStateList(R.color.start_blue)
+            binding.activityMainButtonStartSession.backgroundTintList =
+                getColorStateList(R.color.start_blue)
         } else {
             if (mCountDownTimer != null) {
                 return
@@ -247,7 +248,8 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
                     binding.activityMainTextFieldCountdown.isVisible = false
                     mSessionActive = true
                     binding.activityMainButtonStartSession.setImageResource(R.drawable.ic_baseline_stop_24)
-                    binding.activityMainButtonStartSession.backgroundTintList = getColorStateList(R.color.stop_gray)
+                    binding.activityMainButtonStartSession.backgroundTintList =
+                        getColorStateList(R.color.stop_gray)
                     mMediaPlayerSessionStart.start()
                     mWorkoutStartTime = SystemClock.elapsedRealtime()
                 }
