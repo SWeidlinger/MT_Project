@@ -18,8 +18,13 @@ import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.mlkit.vision.MlKitAnalyzer
+import androidx.camera.view.CameraController.COORDINATE_SYSTEM_VIEW_REFERENCED
+import androidx.camera.view.LifecycleCameraController
+import androidx.camera.view.PreviewView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.toDrawable
 import androidx.core.view.isVisible
 import at.fhooe.mc.mtproject.bottomSheet.BottomSheetFragmentSession
 import at.fhooe.mc.mtproject.databinding.ActivityMainBinding
@@ -104,22 +109,23 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
         mGraphicOverlay = binding.activityMainGraphicOverlay
         mCameraExecutor = Executors.newSingleThreadExecutor()
 
-        if (mSpinnerModelID != 0) {
-            initPoseDetectionAccurate()
-        } else {
+        if (mSpinnerModelID == 0) {
             initPoseDetectionFast()
+        } else {
+            initPoseDetectionAccurate()
         }
 
         //request camera permissions
         if (allPermissionsGranted()) {
             mPrevTime = SystemClock.elapsedRealtime()
-            initImageAnalyzer()
-            startCamera()
+            initMLKitImageAnalyzer()
+//            initImageAnalyzer()
+//            startCamera()
         } else {
             ActivityCompat.requestPermissions(this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS)
         }
 
-        binding.activityMainViewFinder.setOnTouchListener(configureDoubleTap())
+//        binding.activityMainViewFinder.setOnTouchListener(configureDoubleTap())
 
         mMediaPlayerCountdownStart = MediaPlayer.create(this, R.raw.countdown_beep)
         mMediaPlayerSessionStart = MediaPlayer.create(this, R.raw.session_start)
@@ -128,12 +134,6 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
         binding.activityMainButtonStartSession.setOnClickListener {
             performSessionAction()
         }
-
-        //switch camera on long Press
-//        binding.activityMainViewFinder.setOnLongClickListener{
-//            switchCameraInput()
-//            return@setOnLongClickListener true
-//        }
     }
 
     private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
@@ -149,7 +149,8 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == REQUEST_CODE_PERMISSIONS) {
             if (allPermissionsGranted()) {
-                startCamera()
+//                startCamera()
+                initMLKitImageAnalyzer()
                 startService()
             } else {
                 Toast.makeText(
@@ -200,7 +201,7 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
             }
     }
 
-    //sets up the double tap, so that you can double tap to switch cameras
+    //sets up the double tap to switch cameras
     private fun configureDoubleTap(): View.OnTouchListener {
         return object : View.OnTouchListener {
             private val gestureDetector = GestureDetector(this@MainActivity,
@@ -315,7 +316,7 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
                         val frontCameraUsed: Boolean =
                             mCameraSelector == CameraSelector.DEFAULT_FRONT_CAMERA
 
-                        //the orientation is only changed if the turning off the device is
+                        //the orientation is only changed if turning of the device is
                         //activated in the android settings
                         if (mUpdateImageSourceInfo) {
                             if (rotationDegrees == 0 || rotationDegrees == 180) {
@@ -370,13 +371,42 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
         }
     }
 
+    private fun initMLKitImageAnalyzer() {
+        var cameraController = LifecycleCameraController(baseContext)
+        val previewView: PreviewView = binding.activityMainViewFinder
+
+        cameraController.setImageAnalysisAnalyzer(
+            ContextCompat.getMainExecutor(this),
+            MlKitAnalyzer(
+                listOf(mPoseDetector),
+                COORDINATE_SYSTEM_VIEW_REFERENCED,
+                ContextCompat.getMainExecutor(this)
+            ) { result: MlKitAnalyzer.Result? ->
+                val poseResult = result?.getValue(mPoseDetector)
+                if ((poseResult == null) || (poseResult.allPoseLandmarks.size == 0)) {
+                    previewView.overlay.clear()
+                    return@MlKitAnalyzer
+                }
+
+                val poseDetectionDrawable =
+                    PoseDetectionDrawable(poseResult, mThresholdIFL.toDouble(), mDebugMode, mCameraSelector)
+
+                previewView.overlay.clear()
+                previewView.overlay.add(poseDetectionDrawable)
+            }
+        )
+
+        cameraController.bindToLifecycle(this)
+        previewView.controller = cameraController
+    }
+
     private fun switchCameraInput() {
         if (mCameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) {
             mCameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
         } else {
             mCameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
         }
-        startCamera()
+//        startCamera()
     }
 
     private fun startCamera() {
@@ -436,8 +466,9 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
         super.onResume()
         if (allPermissionsGranted()) {
             startService()
-            initImageAnalyzer()
-            startCamera()
+            initMLKitImageAnalyzer()
+//            initImageAnalyzer()
+//            startCamera()
         }
     }
 
