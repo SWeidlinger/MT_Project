@@ -60,9 +60,6 @@ dependencies {
     implementation "androidx.camera:camera-view:${camerax_version}"
     implementation "androidx.camera:camera-extensions:${camerax_version}"
 
-    //New ML Kit Vision
-    implementation 'androidx.camera:camera-mlkit-vision:1.2.0-beta02'
-
     //MLKit Pose Detection
     // base SDK
     implementation 'com.google.mlkit:pose-detection:18.0.0-beta3'

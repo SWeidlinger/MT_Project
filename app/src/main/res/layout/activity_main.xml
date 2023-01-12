@@ -20,15 +20,6 @@
 
     </androidx.camera.view.PreviewView>
 
-    <at.fhooe.mc.mtproject.helpers.GraphicOverlay
-        android:id="@+id/activity_main_graphicOverlay"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        app:layout_constraintBottom_toBottomOf="@id/activity_main_viewFinder"
-        app:layout_constraintLeft_toLeftOf="@id/activity_main_viewFinder"
-        app:layout_constraintRight_toRightOf="@id/activity_main_viewFinder"
-        app:layout_constraintTop_toTopOf="parent" />
-
     <com.google.android.material.button.MaterialButton
         android:id="@+id/activity_main_button_startSession_old"
         android:layout_width="0dp"
@@ -45,6 +36,25 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
+
+    <ImageView
+        android:id="@+id/activity_main_testImage"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:srcCompat="@tools:sample/avatars" />
+
+    <at.fhooe.mc.mtproject.helpers.GraphicOverlay
+        android:id="@+id/activity_main_graphicOverlay"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toBottomOf="@id/activity_main_viewFinder"
+        app:layout_constraintLeft_toLeftOf="@id/activity_main_viewFinder"
+        app:layout_constraintRight_toRightOf="@id/activity_main_viewFinder"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
         android:id="@+id/activity_main_textField_countdown"

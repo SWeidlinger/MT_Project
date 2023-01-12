@@ -10,6 +10,7 @@ import android.os.*
 import android.util.Log
 import android.util.Size
 import android.view.*
+import android.widget.ImageView
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
@@ -18,13 +19,8 @@ import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.mlkit.vision.MlKitAnalyzer
-import androidx.camera.view.CameraController.COORDINATE_SYSTEM_VIEW_REFERENCED
-import androidx.camera.view.LifecycleCameraController
-import androidx.camera.view.PreviewView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.graphics.drawable.toDrawable
 import androidx.core.view.isVisible
 import at.fhooe.mc.mtproject.bottomSheet.BottomSheetFragmentSession
 import at.fhooe.mc.mtproject.databinding.ActivityMainBinding
@@ -36,7 +32,6 @@ import at.fhooe.mc.mtproject.speechRecognition.ServiceCallbacks
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.pose.PoseDetection
 import com.google.mlkit.vision.pose.PoseDetector
-import com.google.mlkit.vision.pose.PoseLandmark
 import com.google.mlkit.vision.pose.accurate.AccuratePoseDetectorOptions
 import com.google.mlkit.vision.pose.defaults.PoseDetectorOptions
 import java.util.*
@@ -67,7 +62,6 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
     private var mSessionActive = false
     private var mWorkoutStartTime: Long = 0
 
-    private var mUpdateImageSourceInfo = true
     private var mRotationDegrees: Int = 0
 
     // Select back camera as default
@@ -90,11 +84,23 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
     private lateinit var mMediaPlayerSessionFinished: MediaPlayer
     private lateinit var mMediaPlayerSessionStart: MediaPlayer
 
+    private lateinit var mTestImageView: ImageView
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        binding.activityMainViewFinder.setOnTouchListener(configureDoubleTap())
+
+        binding.activityMainButtonStartSession.setOnClickListener {
+            performSessionAction()
+        }
+
+        mGraphicOverlay = binding.activityMainGraphicOverlay
+
+        mTestImageView = binding.activityMainTestImage
 
         getSettings()
 
@@ -106,8 +112,11 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
             }, 0, 500
         )
 
-        mGraphicOverlay = binding.activityMainGraphicOverlay
         mCameraExecutor = Executors.newSingleThreadExecutor()
+
+        mMediaPlayerCountdownStart = MediaPlayer.create(this, R.raw.countdown_beep)
+        mMediaPlayerSessionStart = MediaPlayer.create(this, R.raw.session_start)
+        mMediaPlayerSessionFinished = MediaPlayer.create(this, R.raw.session_finished)
 
         if (mSpinnerModelID == 0) {
             initPoseDetectionFast()
@@ -115,25 +124,37 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
             initPoseDetectionAccurate()
         }
 
+        mPrevTime = SystemClock.elapsedRealtime()
+
         //request camera permissions
-        if (allPermissionsGranted()) {
-            mPrevTime = SystemClock.elapsedRealtime()
-            initMLKitImageAnalyzer()
-//            initImageAnalyzer()
-//            startCamera()
-        } else {
+        if (!allPermissionsGranted()) {
             ActivityCompat.requestPermissions(this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS)
         }
+    }
 
-//        binding.activityMainViewFinder.setOnTouchListener(configureDoubleTap())
-
-        mMediaPlayerCountdownStart = MediaPlayer.create(this, R.raw.countdown_beep)
-        mMediaPlayerSessionStart = MediaPlayer.create(this, R.raw.session_start)
-        mMediaPlayerSessionFinished = MediaPlayer.create(this, R.raw.session_finished)
-
-        binding.activityMainButtonStartSession.setOnClickListener {
-            performSessionAction()
+    override fun onResume() {
+        super.onResume()
+        if (!allPermissionsGranted()) {
+            return
         }
+        startService()
+        initImageAnalyzer()
+        startCamera()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        stopService()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        mCameraExecutor.shutdown()
+        mFpsUpdateTimer.cancel()
+        stopService()
+        mMediaPlayerCountdownStart.release()
+        mMediaPlayerSessionStart.release()
+        mMediaPlayerSessionFinished.release()
     }
 
     private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
@@ -149,9 +170,9 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == REQUEST_CODE_PERMISSIONS) {
             if (allPermissionsGranted()) {
-//                startCamera()
-                initMLKitImageAnalyzer()
+                initImageAnalyzer()
                 startService()
+                startCamera()
             } else {
                 Toast.makeText(
                     this,
@@ -166,37 +187,36 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
     private fun getSettings() {
         mResultLauncher =
             registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-                if (result.resultCode == Activity.RESULT_OK) {
-                    // There are no request codes
-                    mDebugMode = result.data!!.getBooleanExtra("debugMode", false)
-                    mSpinnerResolutionID = result.data!!.getIntExtra("resolution", 1)
+                if (result.resultCode != Activity.RESULT_OK) {
+                    return@registerForActivityResult
+                }
 
-                    val spinnerModePrev = mSpinnerModelID
-                    mSpinnerModelID = result.data!!.getIntExtra("model", 0)
+                mDebugMode = result.data!!.getBooleanExtra("debugMode", false)
+                mSpinnerResolutionID = result.data!!.getIntExtra("resolution", 1)
+                mThresholdIFL = result.data!!.getIntExtra("thresholdIFL", 50)
+                mCountDownTimerSeconds = result.data!!.getLongExtra("countDownTimer", 3)
 
-                    if (spinnerModePrev != mSpinnerModelID) {
-                        if (mSpinnerModelID == 0) {
-                            initPoseDetectionFast()
-                        } else {
-                            initPoseDetectionAccurate()
-                        }
+                val spinnerModePrev = mSpinnerModelID
+                mSpinnerModelID = result.data!!.getIntExtra("model", 0)
+
+                if (spinnerModePrev != mSpinnerModelID) {
+                    if (mSpinnerModelID == 0) {
+                        initPoseDetectionFast()
+                    } else {
+                        initPoseDetectionAccurate()
                     }
+                }
 
-                    mThresholdIFL = result.data!!.getIntExtra("thresholdIFL", 50)
+                when (mSpinnerResolutionID) {
+                    0 -> mImageResolution = Size(240, 320)
+                    1 -> mImageResolution = Size(480, 640)
+                    2 -> mImageResolution = Size(720, 1280)
+                    3 -> mImageResolution = Size(1080, 1920)
+                }
 
-                    mCountDownTimerSeconds = result.data!!.getLongExtra("countDownTimer", 3)
-
-                    when (mSpinnerResolutionID) {
-                        0 -> mImageResolution = Size(240, 320)
-                        1 -> mImageResolution = Size(480, 640)
-                        2 -> mImageResolution = Size(720, 1280)
-                        3 -> mImageResolution = Size(1080, 1920)
-
-                    }
-                    when (mSpinnerModelID) {
-                        0 -> mModel = "MLKit Normal"
-                        1 -> mModel = "MLKit Accurate"
-                    }
+                when (mSpinnerModelID) {
+                    0 -> mModel = "MLKit Normal"
+                    1 -> mModel = "MLKit Accurate"
                 }
             }
     }
@@ -222,6 +242,115 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
                 return true;
             }
         }
+    }
+
+    private fun initPoseDetectionFast() {
+        val options = PoseDetectorOptions.Builder()
+            .setDetectorMode(PoseDetectorOptions.STREAM_MODE)
+            .build()
+        mPoseDetector = PoseDetection.getClient(options)
+    }
+
+    private fun initPoseDetectionAccurate() {
+        val options = AccuratePoseDetectorOptions.Builder()
+            .setDetectorMode(AccuratePoseDetectorOptions.STREAM_MODE)
+            .build()
+        mPoseDetector = PoseDetection.getClient(options)
+    }
+
+    @SuppressLint("UnsafeOptInUsageError")
+    private fun initImageAnalyzer() {
+        mImageAnalyzer = ImageAnalysis.Builder()
+            .setTargetResolution(mImageResolution)
+            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+            .build()
+        mImageAnalyzer.setAnalyzer(mCameraExecutor) { imageProxy ->
+            val rotationDegrees = imageProxy.imageInfo.rotationDegrees
+            mRotationDegrees = rotationDegrees
+            val image = imageProxy.image ?: return@setAnalyzer
+            val inputImage = InputImage.fromMediaImage(image, rotationDegrees)
+
+            mTestImageView.setImageBitmap(inputImage.bitmapInternal)
+
+            mPoseDetector
+                .process(inputImage)
+                .addOnFailureListener {
+                    imageProxy.close()
+                }.addOnSuccessListener { pose ->
+                    mPrevTime = mCurrentTime
+                    mCurrentTime = SystemClock.elapsedRealtime()
+                    val frontCameraUsed =
+                        mCameraSelector == CameraSelector.DEFAULT_FRONT_CAMERA
+
+                    mGraphicOverlay.setImageSourceInfo(
+                        imageProxy.height,
+                        imageProxy.width,
+                        frontCameraUsed
+                    )
+
+                    var poseClassification: ArrayList<String>? = null
+                    var repCounter: ArrayList<RepetitionCounter>? = null
+                    if (mSessionActive) {
+                        poseClassification = mPoseClassification.getPoseResult(pose)
+                        if (mDebugMode) {
+                            repCounter = mPoseClassification.getRepetitionCounterFull()
+                        }
+                    } else {
+                        mPoseClassification.clearRepetitions()
+                    }
+
+                    val element = Draw(
+                        mGraphicOverlay,
+                        pose,
+                        poseClassification,
+                        repCounter,
+                        mDebugMode,
+                        mImageResolution,
+                        mFps,
+                        mThresholdIFL / 100.0,
+                        supportActionBar!!.height,
+                        mSpinnerModelID
+                    )
+
+                    mGraphicOverlay.clear()
+                    mGraphicOverlay.add(element)
+
+                    imageProxy.close()
+                }
+        }
+    }
+
+    private fun switchCameraInput() {
+        if (mCameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) {
+            mCameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
+        } else {
+            mCameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+        }
+        startCamera()
+    }
+
+    private fun startCamera() {
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
+        cameraProviderFuture.addListener({
+            // Used to bind the lifecycle of cameras to the lifecycle owner
+            mCameraProvider = cameraProviderFuture.get()
+            // Preview
+            mPreview = Preview.Builder()
+                .setTargetResolution(mImageResolution)
+                .build()
+
+            mPreview.setSurfaceProvider(binding.activityMainViewFinder.surfaceProvider)
+            try {
+                // Unbind use cases before rebinding
+                mCameraProvider.unbindAll()
+                // Bind use cases to camera
+                mCameraProvider.bindToLifecycle(
+                    this, mCameraSelector, mImageAnalyzer, mPreview
+                )
+            } catch (exc: Exception) {
+                Log.e(TAG, "Use case binding failed", exc)
+            }
+        }, ContextCompat.getMainExecutor(this))
     }
 
     private fun performSessionAction() {
@@ -279,158 +408,10 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
         bottomSheet.show(supportFragmentManager, BottomSheetFragmentSession.TAG)
     }
 
-    private fun initPoseDetectionFast() {
-        val options = PoseDetectorOptions.Builder()
-            .setDetectorMode(PoseDetectorOptions.STREAM_MODE)
-            .build()
-        mPoseDetector = PoseDetection.getClient(options)
-    }
-
-    private fun initPoseDetectionAccurate() {
-        val options = AccuratePoseDetectorOptions.Builder()
-            .setDetectorMode(AccuratePoseDetectorOptions.STREAM_MODE)
-            .build()
-        mPoseDetector = PoseDetection.getClient(options)
-    }
-
-    @SuppressLint("UnsafeOptInUsageError")
-    private fun initImageAnalyzer() {
-        mImageAnalyzer = ImageAnalysis.Builder()
-            .setTargetResolution(mImageResolution)
-            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-            .build()
-        mImageAnalyzer.setAnalyzer(mCameraExecutor) { imageProxy ->
-            val rotationDegrees = imageProxy.imageInfo.rotationDegrees
-            mUpdateImageSourceInfo = mRotationDegrees != rotationDegrees
-            mRotationDegrees = rotationDegrees
-            val image = imageProxy.image
-            if (image != null) {
-                val inputImage = InputImage.fromMediaImage(image, rotationDegrees)
-                mPoseDetector
-                    .process(inputImage)
-                    .addOnFailureListener {
-                        imageProxy.close()
-                    }.addOnSuccessListener { pose ->
-                        mPrevTime = mCurrentTime
-                        mCurrentTime = SystemClock.elapsedRealtime()
-                        val frontCameraUsed: Boolean =
-                            mCameraSelector == CameraSelector.DEFAULT_FRONT_CAMERA
-
-                        //the orientation is only changed if turning of the device is
-                        //activated in the android settings
-                        if (mUpdateImageSourceInfo) {
-                            if (rotationDegrees == 0 || rotationDegrees == 180) {
-                                mGraphicOverlay.setImageSourceInfo(
-                                    imageProxy.width,
-                                    imageProxy.height,
-                                    frontCameraUsed
-                                )
-                            } else {
-                                mGraphicOverlay.setImageSourceInfo(
-                                    imageProxy.height,
-                                    imageProxy.width,
-                                    frontCameraUsed
-                                )
-                            }
-                        }
-
-                        var poseClassification: ArrayList<String>? = null
-                        var repCounter: ArrayList<RepetitionCounter>? = null
-                        if (mSessionActive) {
-                            poseClassification = mPoseClassification.getPoseResult(pose)
-                            if (mDebugMode) {
-                                repCounter = mPoseClassification.getRepetitionCounterFull()
-                            }
-                        } else {
-                            mPoseClassification.clearRepetitions()
-                            poseClassification?.clear()
-                            repCounter?.clear()
-                        }
-
-                        val element = Draw(
-                            mGraphicOverlay,
-                            pose,
-                            poseClassification,
-                            repCounter,
-                            mDebugMode,
-                            mImageResolution,
-                            mFps,
-                            mThresholdIFL / 100.0,
-                            supportActionBar!!.height,
-                            mSpinnerModelID
-                        )
-
-                        mGraphicOverlay.clear()
-                        mGraphicOverlay.add(element)
-
-//                        mPreview.setSurfaceProvider(binding.activityMainViewFinder.surfaceProvider)
-
-                        imageProxy.close()
-                    }
-            }
+    override fun startSession() {
+        if (!mBottomSheetVisible) {
+            performSessionAction()
         }
-    }
-
-    private fun initMLKitImageAnalyzer() {
-        var cameraController = LifecycleCameraController(baseContext)
-        val previewView: PreviewView = binding.activityMainViewFinder
-
-        cameraController.setImageAnalysisAnalyzer(
-            ContextCompat.getMainExecutor(this),
-            MlKitAnalyzer(
-                listOf(mPoseDetector),
-                COORDINATE_SYSTEM_VIEW_REFERENCED,
-                ContextCompat.getMainExecutor(this)
-            ) { result: MlKitAnalyzer.Result? ->
-                val poseResult = result?.getValue(mPoseDetector)
-                if ((poseResult == null) || (poseResult.allPoseLandmarks.size == 0)) {
-                    previewView.overlay.clear()
-                    return@MlKitAnalyzer
-                }
-
-                val poseDetectionDrawable =
-                    PoseDetectionDrawable(poseResult, mThresholdIFL.toDouble(), mDebugMode, mCameraSelector)
-
-                previewView.overlay.clear()
-                previewView.overlay.add(poseDetectionDrawable)
-            }
-        )
-
-        cameraController.bindToLifecycle(this)
-        previewView.controller = cameraController
-    }
-
-    private fun switchCameraInput() {
-        if (mCameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) {
-            mCameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
-        } else {
-            mCameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-        }
-//        startCamera()
-    }
-
-    private fun startCamera() {
-        val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
-        cameraProviderFuture.addListener({
-            // Used to bind the lifecycle of cameras to the lifecycle owner
-            mCameraProvider = cameraProviderFuture.get()
-            // Preview
-            mPreview = Preview.Builder()
-                .setTargetResolution(mImageResolution)
-                .build()
-
-            mPreview.setSurfaceProvider(binding.activityMainViewFinder.surfaceProvider)
-            try {
-                // Unbind use cases before rebinding
-                mCameraProvider.unbindAll()
-                // Bind use cases to camera
-                mCameraProvider.bindToLifecycle(
-                    this, mCameraSelector, mImageAnalyzer, mPreview
-                )
-            } catch (exc: Exception) {
-                Log.e(TAG, "Use case binding failed", exc)
-            }
-        }, ContextCompat.getMainExecutor(this))
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -462,31 +443,6 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
         return super.onOptionsItemSelected(item)
     }
 
-    override fun onResume() {
-        super.onResume()
-        if (allPermissionsGranted()) {
-            startService()
-            initMLKitImageAnalyzer()
-//            initImageAnalyzer()
-//            startCamera()
-        }
-    }
-
-    override fun onPause() {
-        stopService()
-        super.onPause()
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        mCameraExecutor.shutdown()
-        mFpsUpdateTimer.cancel()
-        stopService()
-        mMediaPlayerCountdownStart.release()
-        mMediaPlayerSessionStart.release()
-        mMediaPlayerSessionFinished.release()
-    }
-
     //Porcupine Service and Service Management
     private var bound: Boolean = false
     private val serviceConnection: ServiceConnection = object : ServiceConnection {
@@ -515,12 +471,6 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
             unbindService(serviceConnection)
         }
         stopService(serviceIntent)
-    }
-
-    override fun startSession() {
-        if (!mBottomSheetVisible) {
-            performSessionAction()
-        }
     }
 
     //Permissions Management
