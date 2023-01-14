@@ -10,7 +10,6 @@ import android.os.*
 import android.util.Log
 import android.util.Size
 import android.view.*
-import android.widget.ImageView
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
@@ -73,7 +72,7 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
     private var mSpinnerResolutionID: Int = 1
     private var mSpinnerModelID: Int = 0
 
-    private var mCountDownTimerSeconds: Long = 3
+    private var mCountDownTimerSeconds: Int = 3
     private var mCountDownTimer: CountDownTimer? = null
 
     private var mService: PorcupineService? = null
@@ -84,7 +83,7 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
     private lateinit var mMediaPlayerSessionFinished: MediaPlayer
     private lateinit var mMediaPlayerSessionStart: MediaPlayer
 
-    private lateinit var mTestImageView: ImageView
+    private lateinit var mSettingsSingleton: SettingsSingleton
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -92,15 +91,15 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        binding.activityMainViewFinder.setOnTouchListener(configureDoubleTap())
-
         binding.activityMainButtonStartSession.setOnClickListener {
             performSessionAction()
         }
 
-        mGraphicOverlay = binding.activityMainGraphicOverlay
+        binding.activityMainViewFinder.setOnTouchListener(configureDoubleTap())
 
-        mTestImageView = binding.activityMainTestImage
+        mSettingsSingleton = SettingsSingleton.getInstance(this)
+
+        mGraphicOverlay = binding.activityMainGraphicOverlay
 
         getSettings()
 
@@ -130,6 +129,13 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
         if (!allPermissionsGranted()) {
             ActivityCompat.requestPermissions(this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS)
         }
+
+        mResultLauncher =
+            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+                if (result.resultCode == Activity.RESULT_OK) {
+                    getSettings()
+                }
+            }
     }
 
     override fun onResume() {
@@ -137,9 +143,9 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
         if (!allPermissionsGranted()) {
             return
         }
-        startService()
         initImageAnalyzer()
         startCamera()
+        startService()
     }
 
     override fun onPause() {
@@ -171,8 +177,8 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
         if (requestCode == REQUEST_CODE_PERMISSIONS) {
             if (allPermissionsGranted()) {
                 initImageAnalyzer()
-                startService()
                 startCamera()
+                startService()
             } else {
                 Toast.makeText(
                     this,
@@ -185,40 +191,32 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
     }
 
     private fun getSettings() {
-        mResultLauncher =
-            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-                if (result.resultCode != Activity.RESULT_OK) {
-                    return@registerForActivityResult
-                }
+        mDebugMode = mSettingsSingleton.getSetting(SettingConstants.DEBUG_MODE) as Boolean
+        mSpinnerResolutionID = mSettingsSingleton.getSetting(SettingConstants.RESOLUTION) as Int
+        mThresholdIFL = mSettingsSingleton.getSetting(SettingConstants.THRESHOLD_IFL) as Int
+        mCountDownTimerSeconds =
+            mSettingsSingleton.getSetting(SettingConstants.COUNTDOWN_TIMER) as Int
 
-                mDebugMode = result.data!!.getBooleanExtra("debugMode", false)
-                mSpinnerResolutionID = result.data!!.getIntExtra("resolution", 1)
-                mThresholdIFL = result.data!!.getIntExtra("thresholdIFL", 50)
-                mCountDownTimerSeconds = result.data!!.getLongExtra("countDownTimer", 3)
+        val spinnerModePrev = mSpinnerModelID
+        mSpinnerModelID = mSettingsSingleton.getSetting(SettingConstants.MODEL) as Int
 
-                val spinnerModePrev = mSpinnerModelID
-                mSpinnerModelID = result.data!!.getIntExtra("model", 0)
-
-                if (spinnerModePrev != mSpinnerModelID) {
-                    if (mSpinnerModelID == 0) {
-                        initPoseDetectionFast()
-                    } else {
-                        initPoseDetectionAccurate()
-                    }
-                }
-
-                when (mSpinnerResolutionID) {
-                    0 -> mImageResolution = Size(240, 320)
-                    1 -> mImageResolution = Size(480, 640)
-                    2 -> mImageResolution = Size(720, 1280)
-                    3 -> mImageResolution = Size(1080, 1920)
-                }
-
-                when (mSpinnerModelID) {
-                    0 -> mModel = "MLKit Normal"
-                    1 -> mModel = "MLKit Accurate"
-                }
+        if (spinnerModePrev != mSpinnerModelID) {
+            if (mSpinnerModelID == 0) {
+                initPoseDetectionFast()
+            } else {
+                initPoseDetectionAccurate()
             }
+        }
+        when (mSpinnerResolutionID) {
+            0 -> mImageResolution = Size(240, 320)
+            1 -> mImageResolution = Size(480, 640)
+            2 -> mImageResolution = Size(720, 1280)
+            3 -> mImageResolution = Size(1080, 1920)
+        }
+        when (mSpinnerModelID) {
+            0 -> mModel = "MLKit Normal"
+            1 -> mModel = "MLKit Accurate"
+        }
     }
 
     //sets up the double tap to switch cameras
@@ -227,19 +225,19 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
             private val gestureDetector = GestureDetector(this@MainActivity,
                 object : GestureDetector.SimpleOnGestureListener() {
                     override fun onDoubleTap(e: MotionEvent): Boolean {
+                        mGraphicOverlay.clear()
                         //vibration for when the camera changes
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                             binding.root.rootView.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
                         }
                         switchCameraInput()
-                        mGraphicOverlay.clear()
                         return super.onDoubleTap(e)
                     }
                 })
 
             override fun onTouch(p0: View?, p1: MotionEvent): Boolean {
                 gestureDetector.onTouchEvent(p1)
-                return true;
+                return true
             }
         }
     }
@@ -269,8 +267,6 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
             mRotationDegrees = rotationDegrees
             val image = imageProxy.image ?: return@setAnalyzer
             val inputImage = InputImage.fromMediaImage(image, rotationDegrees)
-
-            mTestImageView.setImageBitmap(inputImage.bitmapInternal)
 
             mPoseDetector
                 .process(inputImage)
@@ -367,28 +363,29 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
                 return
             }
             binding.activityMainTextFieldCountdown.isVisible = true
-            mCountDownTimer = object : CountDownTimer(mCountDownTimerSeconds * 1000, 1000) {
-                override fun onTick(millisUntilFinished: Long) {
-                    binding.activityMainTextFieldCountdown.text =
-                        "${(millisUntilFinished / 1000) + 1}"
-                    mMediaPlayerCountdownStart.start()
-                }
+            mCountDownTimer =
+                object : CountDownTimer((mCountDownTimerSeconds * 1000).toLong(), 1000) {
+                    override fun onTick(millisUntilFinished: Long) {
+                        binding.activityMainTextFieldCountdown.text =
+                            "${(millisUntilFinished / 1000) + 1}"
+                        mMediaPlayerCountdownStart.start()
+                    }
 
-                override fun onFinish() {
-                    binding.activityMainTextFieldCountdown.isVisible = false
-                    mSessionActive = true
-                    binding.activityMainButtonStartSession.setImageResource(R.drawable.ic_baseline_stop_24)
-                    binding.activityMainButtonStartSession.backgroundTintList =
-                        getColorStateList(R.color.stop_gray)
-                    mMediaPlayerSessionStart.start()
-                    mWorkoutStartTime = SystemClock.elapsedRealtime()
-                }
-            }.start()
+                    override fun onFinish() {
+                        binding.activityMainTextFieldCountdown.isVisible = false
+                        mSessionActive = true
+                        binding.activityMainButtonStartSession.setImageResource(R.drawable.ic_baseline_stop_24)
+                        binding.activityMainButtonStartSession.backgroundTintList =
+                            getColorStateList(R.color.stop_gray)
+                        mMediaPlayerSessionStart.start()
+                        mWorkoutStartTime = SystemClock.elapsedRealtime()
+                    }
+                }.start()
         }
     }
 
     interface BottomSheetFragmentSessionListener {
-        fun isDismissed();
+        fun isDismissed()
     }
 
     private fun showSessionEndSheet() {
@@ -423,11 +420,6 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
         when (item.itemId) {
             R.id.activity_main_menu_settings -> {
                 val intent = (Intent(this, SettingsActivity::class.java))
-                intent.putExtra("debugMode", mDebugMode)
-                intent.putExtra("resolution", mSpinnerResolutionID)
-                intent.putExtra("model", mSpinnerModelID)
-                intent.putExtra("thresholdIFL", mThresholdIFL)
-                intent.putExtra("countDownTimer", mCountDownTimerSeconds)
                 mResultLauncher.launch(intent)
             }
             R.id.activity_main_menu_switchCamera -> {
