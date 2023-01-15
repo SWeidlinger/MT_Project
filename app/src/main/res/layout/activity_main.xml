@@ -69,7 +69,8 @@
         android:id="@+id/activity_main_button_startSession"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="48dp"
+        android:layout_marginEnd="124dp"
+        android:layout_marginBottom="36dp"
         android:clickable="true"
         android:contentDescription="Start a new session"
         app:backgroundTint="#007EB8"
@@ -77,9 +78,106 @@
         app:fabSize="auto"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
         app:maxImageSize="56dp"
         app:srcCompat="@drawable/ic_baseline_play_arrow_24"
         app:tint="@android:color/white" />
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/activity_main_cardView_left"
+        style="@style/CustomMaterialCardViewRight"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginStart="-10dp"
+        android:layout_marginEnd="16dp"
+        app:cardBackgroundColor="@color/cardViewBackground"
+        app:layout_constraintBottom_toBottomOf="@+id/activity_main_button_startSession"
+        app:layout_constraintEnd_toStartOf="@+id/activity_main_button_startSession"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/activity_main_button_startSession">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <TextView
+                android:id="@+id/textView13"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Mode"
+                android:textSize="10sp"
+                app:layout_constraintBottom_toTopOf="@+id/activity_main_textview_mode"
+                app:layout_constraintEnd_toEndOf="@+id/activity_main_textview_mode"
+                app:layout_constraintStart_toStartOf="@+id/activity_main_textview_mode"
+                app:layout_constraintTop_toTopOf="@+id/textView12" />
+
+            <TextView
+                android:id="@+id/textView12"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Exercise"
+                android:textSize="10sp"
+                app:layout_constraintBottom_toTopOf="@+id/activity_main_textview_exercise"
+                app:layout_constraintEnd_toEndOf="@+id/activity_main_textview_exercise"
+                app:layout_constraintStart_toStartOf="@+id/activity_main_textview_exercise" />
+
+            <TextView
+                android:id="@+id/activity_main_textview_mode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Endless"
+                android:textAlignment="center"
+                android:textSize="20sp"
+                app:layout_constraintBottom_toBottomOf="@+id/activity_main_textview_exercise"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/activity_main_textview_exercise"
+                app:layout_constraintTop_toTopOf="@+id/activity_main_textview_exercise" />
+
+            <TextView
+                android:id="@+id/activity_main_textview_exercise"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="Push-Up"
+                android:textAlignment="center"
+                android:textSize="20sp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@+id/activity_main_textview_mode"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/activity_main_cardView_right"
+        style="@style/CustomMaterialCardViewLeft"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="-10dp"
+        app:cardBackgroundColor="@color/cardViewBackground"
+        app:layout_constraintBottom_toBottomOf="@+id/activity_main_cardView_left"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/activity_main_button_startSession"
+        app:layout_constraintTop_toTopOf="@+id/activity_main_cardView_left">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <TextView
+                android:id="@+id/activity_main_textview_session_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="000"
+                android:textSize="32sp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </com.google.android.material.card.MaterialCardView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

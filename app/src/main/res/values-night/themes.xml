@@ -18,5 +18,7 @@
         <item name="bottomSheetDialogTheme">@style/CustomBottomSheetDialogThemeDark</item>
     </style>
 
-    <color name="cardViewBackground">@color/cardview_dark_background</color>
+    <color name="cardViewBackground">@color/custom_cardview_background_dark</color>
+    <color name="customDialogBackground">@color/custom_dialog_background_dark</color>
+    <color name="customTextColor">@color/white</color>
 </resources>

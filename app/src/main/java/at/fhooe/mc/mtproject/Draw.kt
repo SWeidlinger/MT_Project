@@ -109,7 +109,7 @@ class Draw(
                     confidence = poseClassificationArray[1]
                 }
                 val classificationY =
-                    canvas?.height!! - (POSE_CLASSIFICATION_TEXT_SIZE * 1.5f)
+                    (canvas?.height!!-175) - (POSE_CLASSIFICATION_TEXT_SIZE * 1.5f)
                 canvas.drawText(
                     confidence,
                     classificationX,
@@ -123,7 +123,7 @@ class Draw(
                     canvas?.drawText(
                         "${i.className.dropLast(5)}:  ${i.numRepeats}",
                         POSE_CLASSIFICATION_TEXT_SIZE * 0.5f,
-                        canvas.height - (POSE_CLASSIFICATION_TEXT_SIZE * 1.5f * (counter++).toFloat()),
+                        (canvas.height-190) - (POSE_CLASSIFICATION_TEXT_SIZE * 1.5f * (counter++).toFloat()),
                         mClassificationPaint
                     )
                 }

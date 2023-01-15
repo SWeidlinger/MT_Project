@@ -3,8 +3,11 @@ package at.fhooe.mc.mtproject
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.Dialog
 import android.content.*
 import android.content.pm.PackageManager
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.media.MediaPlayer
 import android.os.*
 import android.util.Log
@@ -21,10 +24,13 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
+import androidx.recyclerview.widget.LinearLayoutManager
 import at.fhooe.mc.mtproject.bottomSheet.BottomSheetFragmentSession
 import at.fhooe.mc.mtproject.databinding.ActivityMainBinding
+import at.fhooe.mc.mtproject.databinding.CustomDialogSesssionSettingsBinding
 import at.fhooe.mc.mtproject.helpers.GraphicOverlay
 import at.fhooe.mc.mtproject.helpers.pose.RepetitionCounter
+import at.fhooe.mc.mtproject.sessionDialog.SessionSettingsAdapter
 import at.fhooe.mc.mtproject.speechRecognition.PorcupineService
 import at.fhooe.mc.mtproject.speechRecognition.PorcupineService.LocalBinder
 import at.fhooe.mc.mtproject.speechRecognition.ServiceCallbacks
@@ -85,6 +91,13 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
 
     private lateinit var mSettingsSingleton: SettingsSingleton
 
+    private var mSessionExercise = "All"
+    private var mSessionMode = "Endless"
+    private var mSessionCount = 0
+    private lateinit var mSessionTimeCountdown: CountDownTimer
+
+    private var mCameraSettingSelection = 0
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -102,14 +115,18 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
         mGraphicOverlay = binding.activityMainGraphicOverlay
 
         getSettings()
-
-        mPoseClassification = PoseClassification(this)
+        getSessionSettings()
 
         mFpsUpdateTimer.scheduleAtFixedRate(
             timerTask {
                 mFps = mCurrentTime - mPrevTime
             }, 0, 500
         )
+
+        //switch to front camera if saved in settings
+        if (mCameraSettingSelection == 1) {
+            mCameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
+        }
 
         mCameraExecutor = Executors.newSingleThreadExecutor()
 
@@ -122,6 +139,8 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
         } else {
             initPoseDetectionAccurate()
         }
+
+        mPoseClassification = PoseClassification(this, mSettingsSingleton)
 
         mPrevTime = SystemClock.elapsedRealtime()
 
@@ -136,6 +155,10 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
                     getSettings()
                 }
             }
+
+        binding.activityMainCardViewLeft.setOnClickListener {
+            showSessionOptionsDialog()
+        }
     }
 
     override fun onResume() {
@@ -217,6 +240,9 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
             0 -> mModel = "MLKit Normal"
             1 -> mModel = "MLKit Accurate"
         }
+
+        mCameraSettingSelection =
+            mSettingsSingleton.getSetting(SettingConstants.CAMERA_SELECTION) as Int
     }
 
     //sets up the double tap to switch cameras
@@ -288,11 +314,24 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
                     var repCounter: ArrayList<RepetitionCounter>? = null
                     if (mSessionActive) {
                         poseClassification = mPoseClassification.getPoseResult(pose)
-                        if (mDebugMode) {
-                            repCounter = mPoseClassification.getRepetitionCounterFull()
-                        }
+                        repCounter = mPoseClassification.getRepetitionCounterFull()
                     } else {
                         mPoseClassification.clearRepetitions()
+                    }
+
+                    //add to cardView when rep mode activated
+                    if (mSessionMode == "Rep") {
+                        val currentRepCount = repCounter?.get(0)?.numRepeats
+                        if (currentRepCount != null) {
+                            val repsLeft = mSessionCount - currentRepCount
+                            if (repsLeft == 0) {
+                                performSessionAction()
+                                binding.activityMainTextviewSessionCount.text =
+                                    mSessionCount.toString()
+                            } else {
+                                binding.activityMainTextviewSessionCount.text = repsLeft.toString()
+                            }
+                        }
                     }
 
                     val element = Draw(
@@ -319,8 +358,10 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
     private fun switchCameraInput() {
         if (mCameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) {
             mCameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
+            mSettingsSingleton.setSetting(SettingConstants.CAMERA_SELECTION, 1)
         } else {
             mCameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+            mSettingsSingleton.setSetting(SettingConstants.CAMERA_SELECTION, 0)
         }
         startCamera()
     }
@@ -352,6 +393,17 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
     private fun performSessionAction() {
         if (mSessionActive) {
             showSessionEndSheet()
+            binding.activityMainCardViewLeft.isClickable = true
+
+            //cancel sessionTimer if pause button pressed before timer finishes
+            if (mSessionMode == "Time") {
+                mSessionTimeCountdown.cancel()
+            }
+
+            if (mSessionMode != "Endless") {
+                binding.activityMainTextviewSessionCount.text = mSessionCount.toString()
+            }
+
             mSessionActive = false
             mCountDownTimer = null
             mMediaPlayerSessionFinished.start()
@@ -362,6 +414,7 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
             if (mCountDownTimer != null) {
                 return
             }
+            binding.activityMainCardViewLeft.isClickable = false
             binding.activityMainTextFieldCountdown.isVisible = true
             mCountDownTimer =
                 object : CountDownTimer((mCountDownTimerSeconds * 1000).toLong(), 1000) {
@@ -379,8 +432,84 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
                             getColorStateList(R.color.stop_gray)
                         mMediaPlayerSessionStart.start()
                         mWorkoutStartTime = SystemClock.elapsedRealtime()
+
+                        if (mSessionMode == "Time") {
+                            mSessionTimeCountdown =
+                                object : CountDownTimer((mSessionCount * 1000).toLong(), 1000) {
+                                    override fun onTick(millisUntilFinished: Long) {
+                                        binding.activityMainTextviewSessionCount.text =
+                                            "${(millisUntilFinished / 1000) + 1}"
+                                    }
+
+                                    override fun onFinish() {
+                                        performSessionAction()
+                                        binding.activityMainTextviewSessionCount.text =
+                                            mSessionCount.toString()
+                                    }
+                                }.start()
+                        }
                     }
                 }.start()
+        }
+    }
+
+    private fun showSessionOptionsDialog() {
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        val dialogBinding = CustomDialogSesssionSettingsBinding.inflate(dialog.layoutInflater)
+        dialog.setContentView(dialogBinding.root)
+        dialog.setCancelable(false)
+        val recyclerViewExercise = dialogBinding.customDialogSessionSettingsRecyclerviewExercise
+        recyclerViewExercise.adapter = SessionSettingsAdapter(
+            SettingConstants.SETTINGS_EXERCISE_LIST,
+            this,
+            true,
+            mSessionExercise,
+            mSessionCount
+        )
+        recyclerViewExercise.layoutManager = LinearLayoutManager(this)
+        val recyclerViewMode = dialogBinding.customDialogSessionSettingsRecyclerviewMode
+        recyclerViewMode.adapter = SessionSettingsAdapter(
+            SettingConstants.SETTINGS_MODE_LIST,
+            this,
+            false,
+            mSessionMode,
+            mSessionCount
+        )
+        recyclerViewMode.layoutManager = LinearLayoutManager(this)
+
+        val cancel = dialogBinding.customDialogSessionSettingBtnCancel
+        cancel.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        val save = dialogBinding.customDialogSessionSettingBtnSave
+        save.setOnClickListener {
+            dialog.dismiss()
+            getSessionSettings()
+        }
+        dialog.show()
+    }
+
+    private fun getSessionSettings() {
+        mSessionExercise = mSettingsSingleton.getSetting(SettingConstants.EXERCISE_STRING) as String
+        mSessionMode = mSettingsSingleton.getSetting(SettingConstants.MODE_STRING) as String
+
+        if (mSessionMode == "Endless") {
+            mSessionCount = 0
+            mSettingsSingleton.setSetting(SettingConstants.SESSION_COUNT, 0)
+        } else {
+            mSessionCount = mSettingsSingleton.getSetting(SettingConstants.SESSION_COUNT) as Int
+        }
+
+        binding.activityMainTextviewExercise.text = mSessionExercise
+        binding.activityMainTextviewMode.text = mSessionMode
+
+        if (mSessionCount == 0) {
+            binding.activityMainTextviewSessionCount.text = "-"
+        } else {
+            binding.activityMainTextviewSessionCount.text = mSessionCount.toString()
         }
     }
 

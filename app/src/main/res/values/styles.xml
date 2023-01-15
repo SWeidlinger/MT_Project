@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.MainActivity" parent = "Theme.MaterialComponents.DayNight.DarkActionBar">
+
+    <style name="Theme.MainActivity" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
         <item name="actionBarStyle">@style/MyTheme.ActionBar</item>
     </style>
 
@@ -16,25 +17,49 @@
         <item name="android:activityCloseExitAnimation">@anim/slide_out_right</item>
     </style>
 
-    <style name="CustomBottomSheetDialogThemeLight"
-        parent="Theme.Design.Light.BottomSheetDialog">
+    <style name="CustomBottomSheetDialogThemeLight" parent="Theme.Design.Light.BottomSheetDialog">
         <item name="bottomSheetStyle">@style/AppModalStyleLight</item>
     </style>
 
-    <style name="CustomBottomSheetDialogThemeDark"
-        parent="Theme.Design.BottomSheetDialog">
+    <style name="CustomBottomSheetDialogThemeDark" parent="Theme.Design.BottomSheetDialog">
         <item name="bottomSheetStyle">@style/AppModalStyleDark</item>
     </style>
 
-    <style name="AppModalStyleLight"
-        parent="Widget.Design.BottomSheet.Modal">
+    <style name="AppModalStyleLight" parent="Widget.Design.BottomSheet.Modal">
         <item name="android:background">@drawable/custom_rounded_bottom_sheet</item>
         <item name="android:backgroundTint">@color/white</item>
     </style>
 
-    <style name="AppModalStyleDark"
-        parent="Widget.Design.BottomSheet.Modal">
+    <style name="AppModalStyleDark" parent="Widget.Design.BottomSheet.Modal">
         <item name="android:background">@drawable/custom_rounded_bottom_sheet</item>
         <item name="android:backgroundTint">#2F2F2F</item>
+    </style>
+
+    <style name="CustomMaterialCardViewLeft" parent="@style/Widget.MaterialComponents.CardView">
+        <item name="shapeAppearanceOverlay">
+            @style/ShapeAppearanceOverlay_materialCardView_customCorners_left
+        </item>
+    </style>
+
+    <style name="ShapeAppearanceOverlay_materialCardView_customCorners_left" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopRight">0dp</item>
+        <item name="cornerSizeTopLeft">20dp</item>
+        <item name="cornerSizeBottomRight">0dp</item>
+        <item name="cornerSizeBottomLeft">20dp</item>
+    </style>
+
+    <style name="CustomMaterialCardViewRight" parent="@style/Widget.MaterialComponents.CardView">
+        <item name="shapeAppearanceOverlay">
+            @style/ShapeAppearanceOverlay_materialCardView_customCorners_right
+        </item>
+    </style>
+
+    <style name="ShapeAppearanceOverlay_materialCardView_customCorners_right" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopRight">20dp</item>
+        <item name="cornerSizeTopLeft">0dp</item>
+        <item name="cornerSizeBottomRight">20dp</item>
+        <item name="cornerSizeBottomLeft">0dp</item>
     </style>
 </resources>

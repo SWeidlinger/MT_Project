@@ -30,6 +30,10 @@ class SettingsSingleton private constructor(context: Context) {
     private var mModel = 0
     private var mThresholdIFL = 50
     private var mCountdownTimer = 3
+    private var mExerciseString = "All"
+    private var mModeString = "Endless"
+    private var mSessionCount = 0
+    private var mCameraSelection = 0
 
     init {
         mDebugMode = getBoolean(SettingConstants.DEBUG_MODE, false)
@@ -37,6 +41,10 @@ class SettingsSingleton private constructor(context: Context) {
         mModel = getInt(SettingConstants.MODEL, 0)
         mThresholdIFL = getInt(SettingConstants.THRESHOLD_IFL, 50)
         mCountdownTimer = getInt(SettingConstants.COUNTDOWN_TIMER, 3)
+        mExerciseString = getString(SettingConstants.EXERCISE_STRING, "All")
+        mModeString = getString(SettingConstants.MODE_STRING, "Endless")
+        mSessionCount = getInt(SettingConstants.SESSION_COUNT, 0)
+        mCameraSelection = getInt(SettingConstants.CAMERA_SELECTION, 0)
         saveState()
     }
 
@@ -46,6 +54,10 @@ class SettingsSingleton private constructor(context: Context) {
         setInt(SettingConstants.MODEL, mModel)
         setInt(SettingConstants.THRESHOLD_IFL, mThresholdIFL)
         setInt(SettingConstants.COUNTDOWN_TIMER, mCountdownTimer)
+        setString(SettingConstants.EXERCISE_STRING, mExerciseString)
+        setString(SettingConstants.MODE_STRING, mModeString)
+        setInt(SettingConstants.SESSION_COUNT, mSessionCount)
+        setInt(SettingConstants.CAMERA_SELECTION, mCameraSelection)
     }
 
     fun setSetting(settingName: String, settingValue: Any) {
@@ -65,6 +77,18 @@ class SettingsSingleton private constructor(context: Context) {
             SettingConstants.COUNTDOWN_TIMER -> {
                 mCountdownTimer = setInt(SettingConstants.COUNTDOWN_TIMER, settingValue as Int)
             }
+            SettingConstants.EXERCISE_STRING -> {
+                mExerciseString = setString(SettingConstants.EXERCISE_STRING, settingValue as String)
+            }
+            SettingConstants.MODE_STRING -> {
+                mModeString = setString(SettingConstants.MODE_STRING, settingValue as String)
+            }
+            SettingConstants.SESSION_COUNT -> {
+                mSessionCount = setInt(SettingConstants.SESSION_COUNT, settingValue as Int)
+            }
+            SettingConstants.CAMERA_SELECTION -> {
+                mCameraSelection = setInt(SettingConstants.CAMERA_SELECTION, settingValue as Int)
+            }
             else -> {
                 Log.e(
                     "invalidSettingName",
@@ -81,6 +105,10 @@ class SettingsSingleton private constructor(context: Context) {
             SettingConstants.MODEL -> mModel
             SettingConstants.THRESHOLD_IFL -> mThresholdIFL
             SettingConstants.COUNTDOWN_TIMER -> mCountdownTimer
+            SettingConstants.EXERCISE_STRING -> mExerciseString
+            SettingConstants.MODE_STRING -> mModeString
+            SettingConstants.SESSION_COUNT -> mSessionCount
+            SettingConstants.CAMERA_SELECTION -> mCameraSelection
             else -> {
                 Log.e(
                     "invalidSettingName",
@@ -103,12 +131,22 @@ class SettingsSingleton private constructor(context: Context) {
         return value
     }
 
+    private fun setString(sharedPreference: String, value: String) : String{
+        mSharedPreferences.edit()
+            .putString(sharedPreference, value).apply()
+        return value
+    }
+
     private fun getBoolean(sharedPreference: String, defaultValue: Boolean): Boolean {
         return mSharedPreferences.getBoolean(sharedPreference, defaultValue)
     }
 
     private fun getInt(sharedPreference: String, defaultValue: Int): Int {
         return mSharedPreferences.getInt(sharedPreference, defaultValue)
+    }
+
+    private fun getString(sharedPreference: String, defaultValue: String): String{
+        return mSharedPreferences.getString(sharedPreference, defaultValue) ?: ""
     }
 }
 
@@ -119,4 +157,10 @@ object SettingConstants {
     const val MODEL = "MODEL"
     const val THRESHOLD_IFL = "THRESHOLD_IFL"
     const val COUNTDOWN_TIMER = "COUNTDOWN_TIMER"
+    const val EXERCISE_STRING = "EXERCISE_STRING"
+    const val MODE_STRING = "MODE_STRING"
+    const val SESSION_COUNT = "SESSION_COUNT"
+    val SETTINGS_EXERCISE_LIST = arrayListOf("All", "Squat", "Push-Up", "Sit-Up")
+    val SETTINGS_MODE_LIST = arrayListOf("Endless", "Time", "Rep")
+    const val CAMERA_SELECTION = "CAMERA_SELECTION"
 }

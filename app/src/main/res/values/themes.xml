@@ -18,5 +18,7 @@
         <item name="bottomSheetDialogTheme">@style/CustomBottomSheetDialogThemeLight</item>
     </style>
 
-    <color name="cardViewBackground">@color/cardview_light_background</color>
+    <color name="cardViewBackground">@color/custom_cardview_background_light</color>
+    <color name="customDialogBackground">@color/custom_dialog_background_light</color>
+    <color name="customTextColor">#555555</color>
 </resources>

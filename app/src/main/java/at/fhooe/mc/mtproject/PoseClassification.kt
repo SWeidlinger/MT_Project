@@ -11,9 +11,10 @@ import com.google.mlkit.vision.pose.PoseLandmark
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.util.*
+import kotlin.collections.ArrayList
 import kotlin.math.*
 
-class PoseClassification(context: Context) {
+class PoseClassification(context: Context, settingsSingleton: SettingsSingleton) {
     private lateinit var mPoseClassifier: PoseClassifier
 
     private val mRepCounter = ArrayList<RepetitionCounter>()
@@ -24,6 +25,8 @@ class PoseClassification(context: Context) {
     private val mContext: Context
 
     private lateinit var mRepCountSound: MediaPlayer
+
+    private val mSettingSingleton = settingsSingleton
 
     init {
         mContext = context
@@ -45,7 +48,17 @@ class PoseClassification(context: Context) {
         }
 
         mPoseClassifier = PoseClassifier(mPoseSampleArray)
-        for (i in POSE_CLASSES) {
+
+        val chosenExercise: ArrayList<String> = arrayListOf()
+
+        when(mSettingSingleton.getSetting(SettingConstants.EXERCISE_STRING)){
+            "All" -> chosenExercise.addAll(POSE_CLASSES)
+            "Squat" -> chosenExercise.add(SQUATS_CLASS)
+            "Push-Up" -> chosenExercise.add(PUSHUPS_CLASS)
+            "Sit-Up" -> chosenExercise.add(SITUPS_CLASS)
+        }
+
+        for (i in chosenExercise) {
             mRepCounter.add(RepetitionCounter(i))
         }
     }

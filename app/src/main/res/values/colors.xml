@@ -10,4 +10,8 @@
     <color name="semi_transparent">#5E000000</color>
     <color name="start_blue">#007EB8</color>
     <color name="stop_gray">#313131</color>
+    <color name="custom_cardview_background_dark">#2f2f2f</color>
+    <color name="custom_cardview_background_light">#FFFFFFFF</color>
+    <color name="custom_dialog_background_dark">#424343</color>
+    <color name="custom_dialog_background_light">#FFFFFFFF</color>
 </resources>
