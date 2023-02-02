@@ -19,14 +19,12 @@ class SessionSettingsAdapter(
     context: Context,
     isExercise: Boolean,
     initialSelection: String,
-    initialSessionCountValue: Int
 ) :
     RecyclerView.Adapter<SessionSettingsAdapter.SessionViewHolder>() {
     private var mIsCheckedHolder: SessionViewHolder? = null
     private var mSettingsSingleton = SettingsSingleton.getInstance(context)
     private var mIsExercise = isExercise
     private var mInitialSelection = initialSelection
-    private var mInitialSessionCountValue = initialSessionCountValue
     override fun onCreateViewHolder(
         parent: ViewGroup,
         viewType: Int
@@ -52,38 +50,8 @@ class SessionSettingsAdapter(
             }
             holder.cardView.isChecked = !holder.cardView.isChecked
             mIsCheckedHolder?.cardView?.isChecked = false
-            mIsCheckedHolder?.settingTextField?.isGone = true
             mIsCheckedHolder = holder
             saveSetting(position)
-            checkIfTextField(holder, position)
-        }
-        checkIfTextField(holder, position)
-    }
-
-    private fun checkIfTextField(holder: SessionViewHolder, position: Int) {
-        if ((settingsList[position] == "Time" || settingsList[position] == "Rep") && holder.cardView.isChecked) {
-            when (settingsList[position]) {
-                "Time" -> {
-                    holder.settingTextField.hint = "Seconds"
-                }
-                "Rep" -> {
-                    holder.settingTextField.hint = "Amount"
-                }
-            }
-            holder.settingTextField.isGone = false
-            if (mInitialSessionCountValue != 0){
-                holder.settingTextField.setText(mInitialSessionCountValue.toString())
-            }
-            holder.settingTextField.doAfterTextChanged {
-                if (it != null && it.toString() != "") {
-                    mSettingsSingleton.setSetting(
-                        SettingConstants.SESSION_COUNT,
-                        it.toString().toInt()
-                    )
-                }
-            }
-        } else {
-            holder.settingTextField.isGone = true
         }
     }
 
@@ -108,7 +76,5 @@ class SessionSettingsAdapter(
             root.findViewById(R.id.session_setting_item_cardview)
         val settingName: TextView =
             root.findViewById(R.id.session_setting_item_name)
-        val settingTextField: EditText =
-            root.findViewById(R.id.session_setting_textfield)
     }
 }

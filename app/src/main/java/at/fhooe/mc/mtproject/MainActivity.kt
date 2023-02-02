@@ -13,6 +13,7 @@ import android.os.*
 import android.util.Log
 import android.util.Size
 import android.view.*
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
@@ -21,19 +22,25 @@ import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.cardview.widget.CardView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
+import androidx.core.widget.doAfterTextChanged
 import androidx.recyclerview.widget.LinearLayoutManager
 import at.fhooe.mc.mtproject.bottomSheet.BottomSheetFragmentSession
 import at.fhooe.mc.mtproject.databinding.ActivityMainBinding
-import at.fhooe.mc.mtproject.databinding.CustomDialogSesssionSettingsBinding
+import at.fhooe.mc.mtproject.databinding.BottomSheetSessionSettingsBinding
+import at.fhooe.mc.mtproject.databinding.DialogSesssionSettingsBinding
 import at.fhooe.mc.mtproject.helpers.GraphicOverlay
 import at.fhooe.mc.mtproject.helpers.pose.RepetitionCounter
 import at.fhooe.mc.mtproject.sessionDialog.SessionSettingsAdapter
 import at.fhooe.mc.mtproject.speechRecognition.PorcupineService
 import at.fhooe.mc.mtproject.speechRecognition.PorcupineService.LocalBinder
 import at.fhooe.mc.mtproject.speechRecognition.ServiceCallbacks
+import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.pose.PoseDetection
 import com.google.mlkit.vision.pose.PoseDetector
@@ -42,6 +49,7 @@ import com.google.mlkit.vision.pose.defaults.PoseDetectorOptions
 import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import kotlin.collections.ArrayList
 import kotlin.concurrent.timerTask
 
 private const val TAG = "MainActivity"
@@ -157,7 +165,7 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
             }
 
         binding.activityMainCardViewLeft.setOnClickListener {
-            showSessionOptionsDialog()
+            showBottomSheetSessionSettings()
         }
     }
 
@@ -453,31 +461,112 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
         }
     }
 
-    private fun showSessionOptionsDialog() {
+    private fun showBottomSheetSessionSettings() {
+        val dialog = BottomSheetDialog(this)
+        val dialogBinding = BottomSheetSessionSettingsBinding.inflate(dialog.layoutInflater)
+        dialog.setContentView(dialogBinding.root)
+
+        val exerciseName = dialogBinding.bottomSheetSessionSettingsExerciseName
+        val modeName = dialogBinding.bottomSheetSessionSettingsModeName
+        val textFieldAmount = dialogBinding.bottomSheetSessionSettingsTextfieldAmount
+        val textFieldOutline = dialogBinding.bottomSheetSessionSettingsTextfieldOutline
+        val transparentLayer = dialogBinding.bottomSheetSessionSettingsTransparentCardview
+
+        exerciseName.text = mSessionExercise
+        modeName.text = mSessionMode
+
+        when (mSessionMode) {
+            "Endless" -> {
+                textFieldOutline.hint = "Amount"
+                textFieldOutline.isEnabled = false
+                transparentLayer.isVisible = true
+            }
+            "Time" -> {
+                textFieldOutline.hint = "Seconds"
+                textFieldOutline.isEnabled = true
+                transparentLayer.isVisible = false
+            }
+            "Rep" -> {
+                textFieldOutline.hint = "Amount"
+                textFieldOutline.isEnabled = true
+                transparentLayer.isVisible = false
+            }
+        }
+
+        if (mSessionCount > 0) {
+            textFieldAmount.setText(mSessionCount.toString())
+        }
+
+        val exerciseSelector = dialogBinding.bottomSheetSessionSettingsExerciseSelector
+        exerciseSelector.setOnClickListener {
+            showSessionOptionsDialog(
+                "Exercise",
+                SettingConstants.SETTINGS_EXERCISE_LIST,
+                true,
+                mSessionExercise,
+                exerciseName,
+                textFieldOutline,
+                textFieldAmount,
+                transparentLayer
+            )
+        }
+
+        val modeSelector = dialogBinding.bottomSheetSessionSettingsModeSelector
+        modeSelector.setOnClickListener {
+            showSessionOptionsDialog(
+                "Mode",
+                SettingConstants.SETTINGS_MODE_LIST,
+                false,
+                mSessionMode,
+                modeName,
+                textFieldOutline,
+                textFieldAmount,
+                transparentLayer
+            )
+        }
+
+        //to check the textfield when there is nothing typed
+        textFieldAmount.doAfterTextChanged {
+            if (it != null && it.toString() != "") {
+                mSettingsSingleton.setSetting(
+                    SettingConstants.SESSION_COUNT,
+                    it.toString().toInt()
+                )
+                getSessionSettings()
+            }
+        }
+
+        dialog.show()
+    }
+
+    private fun showSessionOptionsDialog(
+        dialogTitle: String,
+        recyclerViewElements: ArrayList<String>,
+        isExercise: Boolean,
+        currentSelection: String,
+        sessionConfigurationText: TextView,
+        textInputLayout: TextInputLayout,
+        textInput: TextInputEditText,
+        transparentLayer: CardView
+    ) {
         val dialog = Dialog(this)
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
         dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-        val dialogBinding = CustomDialogSesssionSettingsBinding.inflate(dialog.layoutInflater)
+        val dialogBinding = DialogSesssionSettingsBinding.inflate(dialog.layoutInflater)
         dialog.setContentView(dialogBinding.root)
         dialog.setCancelable(false)
+
+        val title = dialogBinding.customDialogSessionSettingsTitle
+        title.text = dialogTitle
+
         val recyclerViewExercise = dialogBinding.customDialogSessionSettingsRecyclerviewExercise
         recyclerViewExercise.adapter = SessionSettingsAdapter(
-            SettingConstants.SETTINGS_EXERCISE_LIST,
+            recyclerViewElements,
             this,
-            true,
-            mSessionExercise,
-            mSessionCount
+            isExercise,
+            currentSelection
         )
         recyclerViewExercise.layoutManager = LinearLayoutManager(this)
-        val recyclerViewMode = dialogBinding.customDialogSessionSettingsRecyclerviewMode
-        recyclerViewMode.adapter = SessionSettingsAdapter(
-            SettingConstants.SETTINGS_MODE_LIST,
-            this,
-            false,
-            mSessionMode,
-            mSessionCount
-        )
-        recyclerViewMode.layoutManager = LinearLayoutManager(this)
 
         val cancel = dialogBinding.customDialogSessionSettingBtnCancel
         cancel.setOnClickListener {
@@ -488,6 +577,30 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
         save.setOnClickListener {
             dialog.dismiss()
             getSessionSettings()
+            //update text in bottomSheet
+            if (isExercise) {
+                sessionConfigurationText.text = mSessionExercise
+            } else {
+                sessionConfigurationText.text = mSessionMode
+                when (mSessionMode) {
+                    "Endless" -> {
+                        textInputLayout.hint = "Amount"
+                        textInputLayout.isEnabled = false
+                        transparentLayer.isVisible = true
+                        textInput.setText("")
+                    }
+                    "Time" -> {
+                        textInputLayout.hint = "Seconds"
+                        textInputLayout.isEnabled = true
+                        transparentLayer.isVisible = false
+                    }
+                    "Rep" -> {
+                        textInputLayout.hint = "Amount"
+                        textInputLayout.isEnabled = true
+                        transparentLayer.isVisible = false
+                    }
+                }
+            }
         }
         dialog.show()
     }

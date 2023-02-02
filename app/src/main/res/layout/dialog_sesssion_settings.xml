@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:background="@drawable/custom_rounded_corner_dialog">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+
+        <Button
+            android:id="@+id/custom_dialog_session_setting_btn_save"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="16dp"
+            android:backgroundTint="#007EB8"
+            android:text="Save"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/custom_dialog_session_setting_btn_cancel"
+            app:layout_constraintStart_toStartOf="@+id/custom_dialog_session_settings_recyclerview_exercise"
+            app:layout_constraintTop_toBottomOf="@+id/custom_dialog_session_settings_recyclerview_exercise" />
+
+        <Button
+            android:id="@+id/custom_dialog_session_setting_btn_cancel"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cancel"
+            android:textAllCaps="false"
+            android:textColor="@color/customTextColor"
+            app:layout_constraintBottom_toBottomOf="@+id/custom_dialog_session_setting_btn_save"
+            app:layout_constraintEnd_toEndOf="@+id/custom_dialog_session_settings_recyclerview_exercise"
+            app:layout_constraintStart_toEndOf="@+id/custom_dialog_session_setting_btn_save"
+            app:layout_constraintTop_toTopOf="@+id/custom_dialog_session_setting_btn_save"
+            app:strokeWidth="2dp" />
+
+        <TextView
+            android:id="@+id/custom_dialog_session_settings_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:gravity="center"
+            android:text="Exercise"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="@+id/custom_dialog_session_settings_recyclerview_exercise"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toStartOf="@+id/custom_dialog_session_settings_recyclerview_exercise"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/custom_dialog_session_settings_recyclerview_exercise"
+            android:layout_width="280dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="16dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/custom_dialog_session_settings_title">
+
+        </androidx.recyclerview.widget.RecyclerView>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</RelativeLayout>

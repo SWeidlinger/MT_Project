@@ -21,4 +21,6 @@
     <color name="cardViewBackground">@color/custom_cardview_background_light</color>
     <color name="customDialogBackground">@color/custom_dialog_background_light</color>
     <color name="customTextColor">#555555</color>
+
+    <color name="mtrl_textinput_default_box_stroke_color" tools:override="true">#555555</color>
 </resources>

@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit
 class BottomSheetFragmentSession(
     repCounter: ArrayList<RepetitionCounter>,
     workoutTime: Long,
-    val listener: MainActivity.BottomSheetFragmentSessionListener
+    private val listener: MainActivity.BottomSheetFragmentSessionListener
 ) :
     BottomSheetDialogFragment() {
     private val mRepCounter: ArrayList<RepetitionCounter>
@@ -41,7 +41,7 @@ class BottomSheetFragmentSession(
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        return inflater.inflate(R.layout.fragment_bottom_sheet_dialog, container, false)
+        return inflater.inflate(R.layout.bottom_sheet_session_end, container, false)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {

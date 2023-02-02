@@ -19,21 +19,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
-            <EditText
-                android:id="@+id/session_setting_textfield"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:ems="10"
-                android:gravity="center"
-                android:inputType="number"
-                android:visibility="gone"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="@+id/session_setting_item_name"
-                app:layout_constraintHorizontal_bias="0.497"
-                app:layout_constraintStart_toStartOf="@+id/session_setting_item_name"
-                app:layout_constraintTop_toBottomOf="@+id/session_setting_item_name"
-                android:autofillHints="no" />
-
             <TextView
                 android:id="@+id/session_setting_item_name"
                 android:layout_width="match_parent"
