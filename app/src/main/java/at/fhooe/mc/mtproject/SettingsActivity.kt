@@ -18,6 +18,7 @@ class SettingsActivity : AppCompatActivity() {
     private var mOriginalModelValue = 0
     private var mOriginalThresholdIFLValue = 50
     private var mOriginalCountDownTimerValue = 3
+    private var mOriginalSyncPreviewAndOverlayValue = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,6 +61,8 @@ class SettingsActivity : AppCompatActivity() {
                 SettingConstants.MODEL
             ) as Int
         )
+        binding.activitySettingsSyncPreviewAndOverlay.isChecked =
+            mSettingsSingleton.getSetting(SettingConstants.SYNC_PREVIEW_AND_OVERLAY) as Boolean
         updateOriginalValues()
     }
 
@@ -87,6 +90,8 @@ class SettingsActivity : AppCompatActivity() {
             binding.activitySettingsThresholdEditText.text.toString().toInt()
         mOriginalCountDownTimerValue =
             binding.activitySettingsCountdownEditText.text.toString().toInt()
+        mOriginalSyncPreviewAndOverlayValue =
+            binding.activitySettingsSyncPreviewAndOverlay.isChecked
     }
 
     private fun didValuesChange(): Boolean {
@@ -96,7 +101,8 @@ class SettingsActivity : AppCompatActivity() {
             mOriginalThresholdIFLValue == binding.activitySettingsThresholdEditText.text.toString()
                 .toInt() &&
             mOriginalCountDownTimerValue == binding.activitySettingsCountdownEditText.text.toString()
-                .toInt()
+                .toInt() &&
+            mOriginalSyncPreviewAndOverlayValue == binding.activitySettingsSyncPreviewAndOverlay.isChecked
         ) {
             return false
         }
@@ -135,6 +141,10 @@ class SettingsActivity : AppCompatActivity() {
             mSettingsSingleton.setSetting(
                 SettingConstants.COUNTDOWN_TIMER,
                 binding.activitySettingsCountdownEditText.text.toString().toInt()
+            )
+            mSettingsSingleton.setSetting(
+                SettingConstants.SYNC_PREVIEW_AND_OVERLAY,
+                binding.activitySettingsSyncPreviewAndOverlay.isChecked
             )
             setResult(
                 Activity.RESULT_OK,

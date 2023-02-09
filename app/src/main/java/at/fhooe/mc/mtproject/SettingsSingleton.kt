@@ -34,6 +34,7 @@ class SettingsSingleton private constructor(context: Context) {
     private var mModeString = "Endless"
     private var mSessionCount = 0
     private var mCameraSelection = 0
+    private var mSyncPreviewAndOverlay = false
 
     init {
         mDebugMode = getBoolean(SettingConstants.DEBUG_MODE, false)
@@ -45,6 +46,7 @@ class SettingsSingleton private constructor(context: Context) {
         mModeString = getString(SettingConstants.MODE_STRING, "Endless")
         mSessionCount = getInt(SettingConstants.SESSION_COUNT, 0)
         mCameraSelection = getInt(SettingConstants.CAMERA_SELECTION, 0)
+        mSyncPreviewAndOverlay = getBoolean(SettingConstants.SYNC_PREVIEW_AND_OVERLAY, false)
         saveState()
     }
 
@@ -58,6 +60,7 @@ class SettingsSingleton private constructor(context: Context) {
         setString(SettingConstants.MODE_STRING, mModeString)
         setInt(SettingConstants.SESSION_COUNT, mSessionCount)
         setInt(SettingConstants.CAMERA_SELECTION, mCameraSelection)
+        setBoolean(SettingConstants.SYNC_PREVIEW_AND_OVERLAY, mSyncPreviewAndOverlay)
     }
 
     fun setSetting(settingName: String, settingValue: Any) {
@@ -89,6 +92,9 @@ class SettingsSingleton private constructor(context: Context) {
             SettingConstants.CAMERA_SELECTION -> {
                 mCameraSelection = setInt(SettingConstants.CAMERA_SELECTION, settingValue as Int)
             }
+            SettingConstants.SYNC_PREVIEW_AND_OVERLAY -> {
+                mSyncPreviewAndOverlay = setBoolean(SettingConstants.SYNC_PREVIEW_AND_OVERLAY, settingValue as Boolean)
+            }
             else -> {
                 Log.e(
                     "invalidSettingName",
@@ -109,6 +115,7 @@ class SettingsSingleton private constructor(context: Context) {
             SettingConstants.MODE_STRING -> mModeString
             SettingConstants.SESSION_COUNT -> mSessionCount
             SettingConstants.CAMERA_SELECTION -> mCameraSelection
+            SettingConstants.SYNC_PREVIEW_AND_OVERLAY -> mSyncPreviewAndOverlay
             else -> {
                 Log.e(
                     "invalidSettingName",
@@ -163,4 +170,5 @@ object SettingConstants {
     val SETTINGS_EXERCISE_LIST = arrayListOf("All", "Squat", "Push-Up", "Sit-Up")
     val SETTINGS_MODE_LIST = arrayListOf("Endless", "Time", "Rep")
     const val CAMERA_SELECTION = "CAMERA_SELECTION"
+    const val SYNC_PREVIEW_AND_OVERLAY = "SYNC_PREVIEW_AND_OVERLAY"
 }

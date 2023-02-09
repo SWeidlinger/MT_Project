@@ -18,9 +18,7 @@ import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.camera.core.CameraSelector
-import androidx.camera.core.ImageAnalysis
-import androidx.camera.core.Preview
+import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.cardview.widget.CardView
 import androidx.core.app.ActivityCompat
@@ -32,6 +30,8 @@ import at.fhooe.mc.mtproject.bottomSheet.BottomSheetFragmentSession
 import at.fhooe.mc.mtproject.databinding.ActivityMainBinding
 import at.fhooe.mc.mtproject.databinding.BottomSheetSessionSettingsBinding
 import at.fhooe.mc.mtproject.databinding.DialogSesssionSettingsBinding
+import at.fhooe.mc.mtproject.helpers.BitmapUtils
+import at.fhooe.mc.mtproject.helpers.CameraImageGraphic
 import at.fhooe.mc.mtproject.helpers.GraphicOverlay
 import at.fhooe.mc.mtproject.helpers.pose.RepetitionCounter
 import at.fhooe.mc.mtproject.sessionDialog.SessionSettingsAdapter
@@ -77,10 +77,12 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
     private var mRotationDegrees: Int = 0
 
     // Select back camera as default
-    private var mCameraSelector: CameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-    private var mDebugMode: Boolean = false
+    private var mCameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+    private var mDebugMode = false
     private lateinit var mResultLauncher: ActivityResultLauncher<Intent>
-    private var mModel: String = "MLKit Normal"
+    private var mModel = "MLKit Normal"
+    private var mSyncPreviewAndOverlay = false
+
 
     private var mSpinnerResolutionID: Int = 1
     private var mSpinnerModelID: Int = 0
@@ -107,20 +109,10 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        binding.activityMainButtonStartSession.setOnClickListener {
-            performSessionAction()
-        }
-
-        binding.activityMainViewFinder.setOnTouchListener(configureDoubleTap())
-
         mSettingsSingleton = SettingsSingleton.getInstance(this)
-
-        mGraphicOverlay = binding.activityMainGraphicOverlay
-
         getSettings()
         getSessionSettings()
 
@@ -129,12 +121,13 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
                 mFps = mCurrentTime - mPrevTime
             }, 0, 500
         )
+        mPrevTime = SystemClock.elapsedRealtime()
 
+        mGraphicOverlay = binding.activityMainGraphicOverlay
         //switch to front camera if saved in settings
         if (mCameraSettingSelection == 1) {
             mCameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
         }
-
         mCameraExecutor = Executors.newSingleThreadExecutor()
 
         mMediaPlayerCountdownStart = MediaPlayer.create(this, R.raw.countdown_beep)
@@ -148,8 +141,6 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
         }
 
         mPoseClassification = PoseClassification(this, mSettingsSingleton)
-
-        mPrevTime = SystemClock.elapsedRealtime()
 
         //request camera permissions
         if (!allPermissionsGranted()) {
@@ -166,10 +157,13 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
         binding.activityMainCardViewLeft.setOnClickListener {
             showBottomSheetSessionSettings()
         }
-
-        binding.activityMainCardViewRight.setOnClickListener{
+        binding.activityMainCardViewRight.setOnClickListener {
             showBottomSheetSessionSettings()
         }
+        binding.activityMainButtonStartSession.setOnClickListener {
+            performSessionAction()
+        }
+        binding.activityMainPreviewView.setOnTouchListener(configureDoubleTap())
     }
 
     override fun onResume() {
@@ -230,6 +224,7 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
         mThresholdIFL = mSettingsSingleton.getSetting(SettingConstants.THRESHOLD_IFL) as Int
         mCountDownTimerSeconds =
             mSettingsSingleton.getSetting(SettingConstants.COUNTDOWN_TIMER) as Int
+        mSyncPreviewAndOverlay = mSettingsSingleton.getSetting(SettingConstants.SYNC_PREVIEW_AND_OVERLAY) as Boolean
 
         val spinnerModePrev = mSpinnerModelID
         mSpinnerModelID = mSettingsSingleton.getSetting(SettingConstants.MODEL) as Int
@@ -241,6 +236,9 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
                 initPoseDetectionAccurate()
             }
         }
+
+        Log.e("DEBUG", mSpinnerResolutionID.toString())
+
         when (mSpinnerResolutionID) {
             0 -> mImageResolution = Size(240, 320)
             1 -> mImageResolution = Size(480, 640)
@@ -360,7 +358,19 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
                     )
 
                     mGraphicOverlay.clear()
+
+                    //sync cameraPreview and Graphic Overlay
+                    if(mSyncPreviewAndOverlay) {
+                        mGraphicOverlay.add(
+                            CameraImageGraphic(
+                                mGraphicOverlay,
+                                BitmapUtils.getBitmap(imageProxy)
+                            )
+                        )
+                    }
+
                     mGraphicOverlay.add(element)
+                    mGraphicOverlay.postInvalidate()
 
                     imageProxy.close()
                 }
@@ -368,6 +378,7 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
     }
 
     private fun switchCameraInput() {
+        mGraphicOverlay.clear()
         if (mCameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) {
             mCameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
             mSettingsSingleton.setSetting(SettingConstants.CAMERA_SELECTION, 1)
@@ -388,14 +399,12 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
                 .setTargetResolution(mImageResolution)
                 .build()
 
-            mPreview.setSurfaceProvider(binding.activityMainViewFinder.surfaceProvider)
+            mPreview.setSurfaceProvider(binding.activityMainPreviewView.surfaceProvider)
             try {
                 // Unbind use cases before rebinding
                 mCameraProvider.unbindAll()
                 // Bind use cases to camera
-                mCameraProvider.bindToLifecycle(
-                    this, mCameraSelector, mImageAnalyzer, mPreview
-                )
+                mCameraProvider.bindToLifecycle(this, mCameraSelector, mPreview, mImageAnalyzer)
             } catch (exc: Exception) {
                 Log.e(TAG, "Use case binding failed", exc)
             }

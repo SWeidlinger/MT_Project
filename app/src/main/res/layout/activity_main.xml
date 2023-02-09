@@ -7,7 +7,7 @@
     tools:context=".MainActivity">
 
     <androidx.camera.view.PreviewView
-        android:id="@+id/activity_main_viewFinder"
+        android:id="@+id/activity_main_preview_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:clickable="true"
@@ -24,9 +24,9 @@
         android:id="@+id/activity_main_graphicOverlay"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintBottom_toBottomOf="@id/activity_main_viewFinder"
-        app:layout_constraintLeft_toLeftOf="@id/activity_main_viewFinder"
-        app:layout_constraintRight_toRightOf="@id/activity_main_viewFinder"
+        app:layout_constraintBottom_toBottomOf="@id/activity_main_preview_view"
+        app:layout_constraintLeft_toLeftOf="@id/activity_main_preview_view"
+        app:layout_constraintRight_toRightOf="@id/activity_main_preview_view"
         app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
