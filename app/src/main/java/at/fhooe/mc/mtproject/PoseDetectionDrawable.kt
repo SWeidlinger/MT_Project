@@ -159,11 +159,9 @@ class PoseDetectionDrawable(
         val leftEye = mPose.getPoseLandmark(PoseLandmark.LEFT_EYE)?.position3D
         val rightEye = mPose.getPoseLandmark(PoseLandmark.RIGHT_EYE)?.position3D
 
-
-
         Log.e("leftEye", leftEye.toString())
         Log.e("rightEye", rightEye.toString())
-//
+
         Log.e("leftEyeXTranslated", translateX(leftEye!!.x).toString())
         Log.e("leftEyeYTranslated", translateY(leftEye.y).toString())
 

@@ -20,23 +20,6 @@
 
     </androidx.camera.view.PreviewView>
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/activity_main_button_startSession_old"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="-5dp"
-        android:background="@drawable/ic_button"
-        android:contentDescription="Start a new session"
-        android:visibility="gone"
-        app:icon="@drawable/ic_baseline_play_arrow_24"
-        app:iconGravity="textStart"
-        app:iconPadding="0dp"
-        app:iconSize="52dp"
-        app:iconTint="@color/white"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
-
     <at.fhooe.mc.mtproject.helpers.GraphicOverlay
         android:id="@+id/activity_main_graphicOverlay"
         android:layout_width="0dp"
@@ -104,8 +87,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Mode"
-                android:textSize="10sp"
-                app:layout_constraintBottom_toTopOf="@+id/activity_main_textview_mode"
+                android:textSize="12sp"
+                app:layout_constraintBottom_toBottomOf="@+id/textView12"
                 app:layout_constraintEnd_toEndOf="@+id/activity_main_textview_mode"
                 app:layout_constraintStart_toStartOf="@+id/activity_main_textview_mode"
                 app:layout_constraintTop_toTopOf="@+id/textView12" />
@@ -114,11 +97,12 @@
                 android:id="@+id/textView12"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="7dp"
                 android:text="Exercise"
-                android:textSize="10sp"
-                app:layout_constraintBottom_toTopOf="@+id/activity_main_textview_exercise"
+                android:textSize="12sp"
                 app:layout_constraintEnd_toEndOf="@+id/activity_main_textview_exercise"
-                app:layout_constraintStart_toStartOf="@+id/activity_main_textview_exercise" />
+                app:layout_constraintStart_toStartOf="@+id/activity_main_textview_exercise"
+                app:layout_constraintTop_toTopOf="parent" />
 
             <TextView
                 android:id="@+id/activity_main_textview_mode"
@@ -126,7 +110,7 @@
                 android:layout_height="wrap_content"
                 android:text="Endless"
                 android:textAlignment="center"
-                android:textSize="20sp"
+                android:textSize="22sp"
                 app:layout_constraintBottom_toBottomOf="@+id/activity_main_textview_exercise"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@+id/activity_main_textview_exercise"
@@ -136,14 +120,14 @@
                 android:id="@+id/activity_main_textview_exercise"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="-4dp"
                 android:text="Push-Up"
                 android:textAlignment="center"
-                android:textSize="20sp"
+                android:textSize="22sp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toStartOf="@+id/activity_main_textview_mode"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+                app:layout_constraintTop_toBottomOf="@+id/textView12" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 

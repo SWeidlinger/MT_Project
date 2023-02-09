@@ -49,7 +49,6 @@ import com.google.mlkit.vision.pose.defaults.PoseDetectorOptions
 import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import kotlin.collections.ArrayList
 import kotlin.concurrent.timerTask
 
 private const val TAG = "MainActivity"
@@ -167,6 +166,10 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
         binding.activityMainCardViewLeft.setOnClickListener {
             showBottomSheetSessionSettings()
         }
+
+        binding.activityMainCardViewRight.setOnClickListener{
+            showBottomSheetSessionSettings()
+        }
     }
 
     override fun onResume() {
@@ -269,6 +272,7 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
                     }
                 })
 
+            @SuppressLint("ClickableViewAccessibility")
             override fun onTouch(p0: View?, p1: MotionEvent): Boolean {
                 gestureDetector.onTouchEvent(p1)
                 return true
@@ -402,6 +406,7 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
         if (mSessionActive) {
             showSessionEndSheet()
             binding.activityMainCardViewLeft.isClickable = true
+            binding.activityMainCardViewRight.isClickable = true
 
             //cancel sessionTimer if pause button pressed before timer finishes
             if (mSessionMode == "Time") {
@@ -423,6 +428,8 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
                 return
             }
             binding.activityMainCardViewLeft.isClickable = false
+            binding.activityMainCardViewRight.isClickable = false
+
             binding.activityMainTextFieldCountdown.isVisible = true
             mCountDownTimer =
                 object : CountDownTimer((mCountDownTimerSeconds * 1000).toLong(), 1000) {
@@ -525,7 +532,7 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
             )
         }
 
-        //to check the textfield when there is nothing typed
+        //to check textField when nothing got typed
         textFieldAmount.doAfterTextChanged {
             if (it != null && it.toString() != "") {
                 mSettingsSingleton.setSetting(
