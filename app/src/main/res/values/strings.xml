@@ -1,16 +1,15 @@
 <resources>
     <string name="app_name">MoFit</string>
 
-    <string-array name="Resolutions">
-        <item>320x240</item>
-        <item>640x480</item>
-        <item>1280x720</item>
-        <item>1920x1080</item>
-    </string-array>
-
-    <string-array name="Models">
-        <item>MLKit Fast</item>
-        <item>MLKit Accurate</item>
-    </string-array>
+    <!--preferences    -->
+    <string name="preference_switch_debug_mode">Debug Mode</string>
+    <string name="preference_edit_text_countdown_timer">Countdown Timer</string>
+    <string name="preference_category_general">General</string>
+    <string name="preference_category_camera">Camera</string>
+    <string name="preference_list_resolutions">Resolution</string>
+    <string name="preference_switch_switch_sync_preview_and_overlay">Sync Preview and Overlay</string>
+    <string name="preference_category_model">Model</string>
+    <string name="preference_list_models">Model</string>
+    <string name="preference_edit_text_threshold_ifl">Threshold IFL</string>
 
 </resources>

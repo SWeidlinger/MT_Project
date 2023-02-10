@@ -14,7 +14,7 @@ import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.math.*
 
-class PoseClassification(context: Context, settingsSingleton: SettingsSingleton) {
+class PoseClassification(context: Context, dataSingleton: DataSingleton) {
     private lateinit var mPoseClassifier: PoseClassifier
 
     private val mRepCounter = ArrayList<RepetitionCounter>()
@@ -26,7 +26,7 @@ class PoseClassification(context: Context, settingsSingleton: SettingsSingleton)
 
     private lateinit var mRepCountSound: MediaPlayer
 
-    private val mSettingSingleton = settingsSingleton
+    private val mSettingSingleton = dataSingleton
 
     init {
         mContext = context
@@ -51,7 +51,7 @@ class PoseClassification(context: Context, settingsSingleton: SettingsSingleton)
 
         val chosenExercise: ArrayList<String> = arrayListOf()
 
-        when(mSettingSingleton.getSetting(SettingConstants.EXERCISE_STRING)){
+        when(mSettingSingleton.getSetting(DataConstants.EXERCISE_STRING)){
             "All" -> chosenExercise.addAll(POSE_CLASSES)
             "Squat" -> chosenExercise.add(SQUATS_CLASS)
             "Push-Up" -> chosenExercise.add(PUSHUPS_CLASS)

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="Resolutions">
+        <item>320x240</item>
+        <item>640x480</item>
+        <item>1280x720</item>
+        <item>1920x1080</item>
+    </string-array>
+
+    <string-array name="Resolutions_values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+    </string-array>
+
+    <string-array name="Models">
+        <item>MLKit Fast</item>
+        <item>MLKit Accurate</item>
+    </string-array>
+
+    <string-array name="Models_values">
+        <item>0</item>
+        <item>1</item>
+    </string-array>
+
+</resources>

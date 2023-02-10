@@ -4,14 +4,11 @@ import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.EditText
 import android.widget.TextView
-import androidx.core.view.isGone
-import androidx.core.widget.doAfterTextChanged
 import androidx.recyclerview.widget.RecyclerView
 import at.fhooe.mc.mtproject.R
-import at.fhooe.mc.mtproject.SettingConstants
-import at.fhooe.mc.mtproject.SettingsSingleton
+import at.fhooe.mc.mtproject.DataConstants
+import at.fhooe.mc.mtproject.DataSingleton
 import com.google.android.material.card.MaterialCardView
 
 class SessionSettingsAdapter(
@@ -22,7 +19,7 @@ class SessionSettingsAdapter(
 ) :
     RecyclerView.Adapter<SessionSettingsAdapter.SessionViewHolder>() {
     private var mIsCheckedHolder: SessionViewHolder? = null
-    private var mSettingsSingleton = SettingsSingleton.getInstance(context)
+    private var mDataSingleton = DataSingleton.getInstance(context)
     private var mIsExercise = isExercise
     private var mInitialSelection = initialSelection
     override fun onCreateViewHolder(
@@ -57,13 +54,13 @@ class SessionSettingsAdapter(
 
     private fun saveSetting(position: Int) {
         if (mIsExercise) {
-            mSettingsSingleton.setSetting(
-                SettingConstants.EXERCISE_STRING,
+            mDataSingleton.setSetting(
+                DataConstants.EXERCISE_STRING,
                 settingsList[position]
             )
         } else {
-            mSettingsSingleton.setSetting(
-                SettingConstants.MODE_STRING,
+            mDataSingleton.setSetting(
+                DataConstants.MODE_STRING,
                 settingsList[position]
             )
         }

@@ -39,7 +39,7 @@
         android:shadowRadius="10"
         android:text="-"
         android:textColor="#FFFFFF"
-        android:textSize="150sp"
+        android:textSize="200sp"
         android:visibility="invisible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

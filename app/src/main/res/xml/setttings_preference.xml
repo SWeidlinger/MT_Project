@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.preference.PreferenceScreen
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory
+        app:iconSpaceReserved="false"
+        android:title="@string/preference_category_general">
+        <SwitchPreference
+            app:iconSpaceReserved="false"
+            android:defaultValue="false"
+            android:key="switch_debugMode"
+            android:title="@string/preference_switch_debug_mode"
+            />
+        <EditTextPreference
+            app:defaultValue="3"
+            app:useSimpleSummaryProvider="true"
+            app:iconSpaceReserved="false"
+            android:defaultValue="Default value"
+            android:key="edit_text_countdown_timer"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="@string/preference_edit_text_countdown_timer" />
+    </PreferenceCategory>
+    <PreferenceCategory
+        app:iconSpaceReserved="false"
+        android:title="@string/preference_category_camera">
+
+        <at.fhooe.mc.mtproject.preferenceDialog.CustomPreferenceList
+            app:useSimpleSummaryProvider="true"
+            app:iconSpaceReserved="false"
+            android:defaultValue="1"
+            android:entries="@array/Resolutions"
+            android:entryValues="@array/Resolutions_values"
+            android:key="list_resolution"
+            android:title="@string/preference_list_resolutions" />
+        <SwitchPreference
+            app:iconSpaceReserved="false"
+            app:defaultValue="true"
+            android:defaultValue="false"
+            android:key="switch_sync_preview_and_overlay"
+            android:title="@string/preference_switch_switch_sync_preview_and_overlay" />
+    </PreferenceCategory>
+    <PreferenceCategory
+        app:iconSpaceReserved="false"
+        android:title="@string/preference_category_model">
+
+        <at.fhooe.mc.mtproject.preferenceDialog.CustomPreferenceList
+            app:useSimpleSummaryProvider="true"
+            app:iconSpaceReserved="false"
+            android:defaultValue="0"
+            android:entries="@array/Models"
+            android:entryValues="@array/Models_values"
+            android:key="list_model"
+            android:title="@string/preference_list_models" />
+        <EditTextPreference
+            app:defaultValue="50"
+            app:useSimpleSummaryProvider="true"
+            app:iconSpaceReserved="false"
+            android:defaultValue="Default value"
+            android:key="edit_text_threshold_ifl"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="@string/preference_edit_text_threshold_ifl" />
+    </PreferenceCategory>
+</androidx.preference.PreferenceScreen>

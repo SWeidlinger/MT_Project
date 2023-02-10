@@ -3,7 +3,7 @@
     <solid
         android:color="@color/customDialogBackground"/>
     <corners
-        android:radius="40dp" />
+        android:radius="30dp" />
     <padding
         android:left="5dp"
         android:top="5dp"

@@ -1,34 +1,71 @@
 package at.fhooe.mc.mtproject
 
+import android.annotation.SuppressLint
 import android.app.Activity
+import android.graphics.Bitmap
 import android.os.Bundle
+import android.text.InputType
 import android.view.MenuItem
-import android.widget.ArrayAdapter
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.doOnLayout
+import androidx.preference.EditTextPreference
+import androidx.preference.PreferenceFragmentCompat
+import androidx.preference.PreferenceManager
 import at.fhooe.mc.mtproject.databinding.ActivitySettingsBinding
+import at.fhooe.mc.mtproject.helpers.CameraImageGraphic
+import at.fhooe.mc.mtproject.helpers.GraphicOverlay
+
+class SettingsFragment : PreferenceFragmentCompat() {
+    override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
+        setPreferencesFromResource(R.xml.setttings_preference, rootKey)
+
+        val countdownTimer =
+            preferenceManager.findPreference<EditTextPreference>("edit_text_countdown_timer")
+        countdownTimer?.setOnBindEditTextListener { editText ->
+            editText.inputType = InputType.TYPE_CLASS_NUMBER
+            editText.setSelection(editText.length())
+        }
+
+        val thresholdIFL =
+            preferenceManager.findPreference<EditTextPreference>("edit_text_threshold_ifl")
+        thresholdIFL?.setOnBindEditTextListener { editText ->
+            editText.inputType = InputType.TYPE_CLASS_NUMBER
+            editText.hint = "0-100"
+            editText.setSelection(editText.length())
+        }
+    }
+}
 
 class SettingsActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivitySettingsBinding
-    private lateinit var mSettingsSingleton: SettingsSingleton
+    private lateinit var mDataSingleton: DataSingleton
 
-    private var mOriginalDebugModeValue = false
-    private var mOriginalResolutionValue = 1
-    private var mOriginalModelValue = 0
-    private var mOriginalThresholdIFLValue = 50
-    private var mOriginalCountDownTimerValue = 3
-    private var mOriginalSyncPreviewAndOverlayValue = false
+    private var mDebugModeValue = false
+    private var mResolutionValue = 1
+    private var mModelValue = 0
+    private var mThresholdIFLValue = 50
+    private var mCountDownTimerValue = 3
+    private var mSyncPreviewAndOverlayValue = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        mSettingsSingleton = SettingsSingleton.getInstance(this)
+        mDataSingleton = DataSingleton.getInstance(this)
 
         binding = ActivitySettingsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        populateSpinners()
+        if (savedInstanceState == null) {
+            supportFragmentManager
+                .beginTransaction()
+                .replace(
+                    R.id.activity_settings_frame_layout,
+                    SettingsFragment()
+                )
+                .commit()
+        }
 
         //activate back button on action bar
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
@@ -41,72 +78,82 @@ class SettingsActivity : AppCompatActivity() {
         })
     }
 
+    private fun updateSettingValues() {
+        val preferences = PreferenceManager.getDefaultSharedPreferences(this)
+        val debugMode = preferences.getBoolean("switch_debugMode", false)
+        val countDownTimerString = preferences.getString("edit_text_countdown_timer", "3")
+        val thresholdIFLString = preferences.getString("edit_text_threshold_ifl", "50")
+        val resolution = preferences.getString("list_resolution", "1")!!.toInt()
+        val syncPreviewAndOverlay =
+            preferences.getBoolean("switch_sync_preview_and_overlay", true)
+        val model = preferences.getString("list_model", "0")!!.toInt()
+
+        var countDownTimerValue = 3
+        var thresholdIFLValue = 50
+
+        if (!countDownTimerString.isNullOrEmpty()) {
+            countDownTimerValue = countDownTimerString.toInt()
+        }
+
+        if (!thresholdIFLString.isNullOrEmpty()) {
+            thresholdIFLValue = thresholdIFLString.toInt()
+        }
+
+        mDebugModeValue = debugMode
+        mResolutionValue = resolution
+        mModelValue = model
+        mThresholdIFLValue = thresholdIFLValue
+        mCountDownTimerValue = countDownTimerValue
+        mSyncPreviewAndOverlayValue = syncPreviewAndOverlay
+    }
+
+    @SuppressLint("UnsafeOptInUsageError")
     override fun onResume() {
         super.onResume()
-        binding.activitySettingsThresholdEditText.setText(
-            mSettingsSingleton.getSetting(SettingConstants.THRESHOLD_IFL).toString()
-        )
-        binding.activitySettingsCountdownEditText.setText(
-            mSettingsSingleton.getSetting(SettingConstants.COUNTDOWN_TIMER).toString()
-        )
-        binding.activitySettingsDebugMode.isChecked =
-            mSettingsSingleton.getSetting(SettingConstants.DEBUG_MODE) as Boolean
-        binding.activitySettingsSpinnerResolution.setSelection(
-            mSettingsSingleton.getSetting(
-                SettingConstants.RESOLUTION
-            ) as Int
-        )
-        binding.activitySettingsSpinnerModel.setSelection(
-            mSettingsSingleton.getSetting(
-                SettingConstants.MODEL
-            ) as Int
-        )
-        binding.activitySettingsSyncPreviewAndOverlay.isChecked =
-            mSettingsSingleton.getSetting(SettingConstants.SYNC_PREVIEW_AND_OVERLAY) as Boolean
-        updateOriginalValues()
-    }
-
-    private fun populateSpinners() {
-        val adapterResolution = ArrayAdapter.createFromResource(
-            this,
-            R.array.Resolutions,
-            android.R.layout.simple_spinner_dropdown_item
-        )
-        binding.activitySettingsSpinnerResolution.adapter = adapterResolution
-
-        val adapterModels = ArrayAdapter.createFromResource(
-            this,
-            R.array.Models,
-            android.R.layout.simple_spinner_dropdown_item
-        )
-        binding.activitySettingsSpinnerModel.adapter = adapterModels
-    }
-
-    private fun updateOriginalValues() {
-        mOriginalDebugModeValue = binding.activitySettingsDebugMode.isChecked
-        mOriginalResolutionValue = binding.activitySettingsSpinnerResolution.selectedItemPosition
-        mOriginalModelValue = binding.activitySettingsSpinnerModel.selectedItemPosition
-        mOriginalThresholdIFLValue =
-            binding.activitySettingsThresholdEditText.text.toString().toInt()
-        mOriginalCountDownTimerValue =
-            binding.activitySettingsCountdownEditText.text.toString().toInt()
-        mOriginalSyncPreviewAndOverlayValue =
-            binding.activitySettingsSyncPreviewAndOverlay.isChecked
+        updateSettingValues()
     }
 
     private fun didValuesChange(): Boolean {
-        if (mOriginalDebugModeValue == binding.activitySettingsDebugMode.isChecked &&
-            mOriginalResolutionValue == binding.activitySettingsSpinnerResolution.selectedItemPosition &&
-            mOriginalModelValue == binding.activitySettingsSpinnerModel.selectedItemPosition &&
-            mOriginalThresholdIFLValue == binding.activitySettingsThresholdEditText.text.toString()
-                .toInt() &&
-            mOriginalCountDownTimerValue == binding.activitySettingsCountdownEditText.text.toString()
-                .toInt() &&
-            mOriginalSyncPreviewAndOverlayValue == binding.activitySettingsSyncPreviewAndOverlay.isChecked
-        ) {
-            return false
+        val preferences = PreferenceManager.getDefaultSharedPreferences(this)
+        val debugMode = preferences.getBoolean("switch_debugMode", false)
+        val countDownTimerString = preferences.getString("edit_text_countdown_timer", "3")
+        val thresholdIFLString = preferences.getString("edit_text_threshold_ifl", "50")
+        val resolution = preferences.getString("list_resolution", "1")!!.toInt()
+        val syncPreviewAndOverlay =
+            preferences.getBoolean("switch_sync_preview_and_overlay", true)
+        val model = preferences.getString("list_model", "0")!!.toInt()
+
+        var countDownTimerValue = 3
+        var thresholdIFLValue = 50
+
+        if (!countDownTimerString.isNullOrEmpty()) {
+            countDownTimerValue = countDownTimerString.toInt()
         }
-        return true
+
+        if (!thresholdIFLString.isNullOrEmpty()) {
+            thresholdIFLValue = thresholdIFLString.toInt()
+        }
+
+        var didValuesChange = false
+
+        //check if settings changed and change all if one changed
+        if (mDebugModeValue != debugMode || mResolutionValue != resolution ||
+            mModelValue != model ||
+            mThresholdIFLValue != thresholdIFLValue ||
+            mCountDownTimerValue != countDownTimerValue ||
+            mSyncPreviewAndOverlayValue != syncPreviewAndOverlay
+        ) {
+            mDebugModeValue = debugMode
+            mResolutionValue = resolution
+            mModelValue = model
+            mThresholdIFLValue = thresholdIFLValue
+            mCountDownTimerValue = countDownTimerValue
+            mSyncPreviewAndOverlayValue = syncPreviewAndOverlay
+
+            didValuesChange = true
+        }
+
+        return didValuesChange
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -120,31 +167,32 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun backButtonPressed() {
         if (!didValuesChange()) {
+            //skip updating in main activity since no values changed
             setResult(Activity.RESULT_CANCELED)
         } else {
-            mSettingsSingleton.setSetting(
-                SettingConstants.DEBUG_MODE,
-                binding.activitySettingsDebugMode.isChecked
+            mDataSingleton.setSetting(
+                DataConstants.DEBUG_MODE,
+                mDebugModeValue
             )
-            mSettingsSingleton.setSetting(
-                SettingConstants.RESOLUTION,
-                binding.activitySettingsSpinnerResolution.selectedItemPosition
+            mDataSingleton.setSetting(
+                DataConstants.RESOLUTION,
+                mResolutionValue
             )
-            mSettingsSingleton.setSetting(
-                SettingConstants.MODEL,
-                binding.activitySettingsSpinnerModel.selectedItemPosition
+            mDataSingleton.setSetting(
+                DataConstants.MODEL,
+                mModelValue
             )
-            mSettingsSingleton.setSetting(
-                SettingConstants.THRESHOLD_IFL,
-                binding.activitySettingsThresholdEditText.text.toString().toInt()
+            mDataSingleton.setSetting(
+                DataConstants.THRESHOLD_IFL,
+                mThresholdIFLValue
             )
-            mSettingsSingleton.setSetting(
-                SettingConstants.COUNTDOWN_TIMER,
-                binding.activitySettingsCountdownEditText.text.toString().toInt()
+            mDataSingleton.setSetting(
+                DataConstants.COUNTDOWN_TIMER,
+                mCountDownTimerValue
             )
-            mSettingsSingleton.setSetting(
-                SettingConstants.SYNC_PREVIEW_AND_OVERLAY,
-                binding.activitySettingsSyncPreviewAndOverlay.isChecked
+            mDataSingleton.setSetting(
+                DataConstants.SYNC_PREVIEW_AND_OVERLAY,
+                mSyncPreviewAndOverlayValue
             )
             setResult(
                 Activity.RESULT_OK,

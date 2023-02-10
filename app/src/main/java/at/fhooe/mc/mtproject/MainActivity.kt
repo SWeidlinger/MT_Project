@@ -39,6 +39,7 @@ import at.fhooe.mc.mtproject.speechRecognition.PorcupineService
 import at.fhooe.mc.mtproject.speechRecognition.PorcupineService.LocalBinder
 import at.fhooe.mc.mtproject.speechRecognition.ServiceCallbacks
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.google.mlkit.vision.common.InputImage
@@ -83,7 +84,6 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
     private var mModel = "MLKit Normal"
     private var mSyncPreviewAndOverlay = false
 
-
     private var mSpinnerResolutionID: Int = 1
     private var mSpinnerModelID: Int = 0
 
@@ -98,7 +98,7 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
     private lateinit var mMediaPlayerSessionFinished: MediaPlayer
     private lateinit var mMediaPlayerSessionStart: MediaPlayer
 
-    private lateinit var mSettingsSingleton: SettingsSingleton
+    private lateinit var mDataSingleton: DataSingleton
 
     private var mSessionExercise = "All"
     private var mSessionMode = "Endless"
@@ -112,7 +112,7 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        mSettingsSingleton = SettingsSingleton.getInstance(this)
+        mDataSingleton = DataSingleton.getInstance(this)
         getSettings()
         getSessionSettings()
 
@@ -140,7 +140,7 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
             initPoseDetectionAccurate()
         }
 
-        mPoseClassification = PoseClassification(this, mSettingsSingleton)
+        mPoseClassification = PoseClassification(this, mDataSingleton)
 
         //request camera permissions
         if (!allPermissionsGranted()) {
@@ -219,15 +219,16 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
     }
 
     private fun getSettings() {
-        mDebugMode = mSettingsSingleton.getSetting(SettingConstants.DEBUG_MODE) as Boolean
-        mSpinnerResolutionID = mSettingsSingleton.getSetting(SettingConstants.RESOLUTION) as Int
-        mThresholdIFL = mSettingsSingleton.getSetting(SettingConstants.THRESHOLD_IFL) as Int
+        mDebugMode = mDataSingleton.getSetting(DataConstants.DEBUG_MODE) as Boolean
+        mSpinnerResolutionID = mDataSingleton.getSetting(DataConstants.RESOLUTION) as Int
+        mThresholdIFL = mDataSingleton.getSetting(DataConstants.THRESHOLD_IFL) as Int
         mCountDownTimerSeconds =
-            mSettingsSingleton.getSetting(SettingConstants.COUNTDOWN_TIMER) as Int
-        mSyncPreviewAndOverlay = mSettingsSingleton.getSetting(SettingConstants.SYNC_PREVIEW_AND_OVERLAY) as Boolean
+            mDataSingleton.getSetting(DataConstants.COUNTDOWN_TIMER) as Int
+        mSyncPreviewAndOverlay =
+            mDataSingleton.getSetting(DataConstants.SYNC_PREVIEW_AND_OVERLAY) as Boolean
 
         val spinnerModePrev = mSpinnerModelID
-        mSpinnerModelID = mSettingsSingleton.getSetting(SettingConstants.MODEL) as Int
+        mSpinnerModelID = mDataSingleton.getSetting(DataConstants.MODEL) as Int
 
         if (spinnerModePrev != mSpinnerModelID) {
             if (mSpinnerModelID == 0) {
@@ -236,8 +237,6 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
                 initPoseDetectionAccurate()
             }
         }
-
-        Log.e("DEBUG", mSpinnerResolutionID.toString())
 
         when (mSpinnerResolutionID) {
             0 -> mImageResolution = Size(240, 320)
@@ -251,7 +250,7 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
         }
 
         mCameraSettingSelection =
-            mSettingsSingleton.getSetting(SettingConstants.CAMERA_SELECTION) as Int
+            mDataSingleton.getSetting(DataConstants.CAMERA_SELECTION) as Int
     }
 
     //sets up the double tap to switch cameras
@@ -344,23 +343,16 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
                         }
                     }
 
-                    val element = Draw(
+                    val element = PoseDetectionDrawable(
                         mGraphicOverlay,
                         pose,
-                        poseClassification,
-                        repCounter,
-                        mDebugMode,
-                        mImageResolution,
-                        mFps,
-                        mThresholdIFL / 100.0,
-                        supportActionBar!!.height,
-                        mSpinnerModelID
+                        mThresholdIFL / 100.0
                     )
 
                     mGraphicOverlay.clear()
 
                     //sync cameraPreview and Graphic Overlay
-                    if(mSyncPreviewAndOverlay) {
+                    if (mSyncPreviewAndOverlay) {
                         mGraphicOverlay.add(
                             CameraImageGraphic(
                                 mGraphicOverlay,
@@ -372,6 +364,39 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
                     mGraphicOverlay.add(element)
                     mGraphicOverlay.postInvalidate()
 
+                    //code to get the preview working in the detailed repScreen once the algorithm works alright
+//                    mDataSingleton.mOverlayBitmapList.add(mGraphicOverlay.drawToBitmap())
+//                    mDataSingleton.mOverlayBitmapList.forEach {
+//                        testOverlay.clear()
+//                        testOverlay.add(
+//                            CameraImageGraphic(
+//                                testOverlay,
+//                                Bitmap.createScaledBitmap(
+//                                    it,
+//                                    testOverlay.width,
+//                                    testOverlay.height,
+//                                    false
+//                                )
+//                            )
+//                        )
+//                    }
+
+                    if (mDebugMode) {
+                        val debugOverlay = DebugOverlayDrawable(
+                            mGraphicOverlay,
+                            pose,
+                            poseClassification,
+                            repCounter,
+                            mImageResolution,
+                            mFps,
+                            mThresholdIFL / 100.0,
+                            supportActionBar!!.height,
+                            mSpinnerModelID,
+                            mSyncPreviewAndOverlay
+                        )
+                        mGraphicOverlay.add(debugOverlay)
+                    }
+
                     imageProxy.close()
                 }
         }
@@ -381,10 +406,10 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
         mGraphicOverlay.clear()
         if (mCameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) {
             mCameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
-            mSettingsSingleton.setSetting(SettingConstants.CAMERA_SELECTION, 1)
+            mDataSingleton.setSetting(DataConstants.CAMERA_SELECTION, 1)
         } else {
             mCameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-            mSettingsSingleton.setSetting(SettingConstants.CAMERA_SELECTION, 0)
+            mDataSingleton.setSetting(DataConstants.CAMERA_SELECTION, 0)
         }
         startCamera()
     }
@@ -517,7 +542,7 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
         exerciseSelector.setOnClickListener {
             showSessionOptionsDialog(
                 "Exercise",
-                SettingConstants.SETTINGS_EXERCISE_LIST,
+                DataConstants.SETTINGS_EXERCISE_LIST,
                 true,
                 mSessionExercise,
                 exerciseName,
@@ -531,7 +556,7 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
         modeSelector.setOnClickListener {
             showSessionOptionsDialog(
                 "Mode",
-                SettingConstants.SETTINGS_MODE_LIST,
+                DataConstants.SETTINGS_MODE_LIST,
                 false,
                 mSessionMode,
                 modeName,
@@ -544,8 +569,8 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
         //to check textField when nothing got typed
         textFieldAmount.doAfterTextChanged {
             if (it != null && it.toString() != "") {
-                mSettingsSingleton.setSetting(
-                    SettingConstants.SESSION_COUNT,
+                mDataSingleton.setSetting(
+                    DataConstants.SESSION_COUNT,
                     it.toString().toInt()
                 )
                 getSessionSettings()
@@ -621,15 +646,66 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
         dialog.show()
     }
 
+    private fun showSessionOptionsMaterialDialog(
+        dialogTitle: String,
+        recyclerViewElements: ArrayList<String>,
+        isExercise: Boolean,
+        currentSelection: String,
+        sessionConfigurationText: TextView,
+        textInputLayout: TextInputLayout,
+        textInput: TextInputEditText,
+        transparentLayer: CardView
+    ) {
+        val materialDialog = MaterialAlertDialogBuilder(this)
+        materialDialog.setCancelable(false)
+        materialDialog.setTitle(dialogTitle)
+
+        materialDialog.setSingleChoiceItems(recyclerViewElements.toTypedArray(), 2) { _, _ -> }
+
+        materialDialog.setNegativeButton("Cancel") { dialog, _ ->
+            dialog.dismiss()
+        }
+
+        materialDialog.setPositiveButton("Save") { dialog, _ ->
+            dialog.dismiss()
+            getSessionSettings()
+            //update text in bottomSheet
+            if (isExercise) {
+                sessionConfigurationText.text = mSessionExercise
+            } else {
+                sessionConfigurationText.text = mSessionMode
+                when (mSessionMode) {
+                    "Endless" -> {
+                        textInputLayout.hint = "Amount"
+                        textInputLayout.isEnabled = false
+                        transparentLayer.isVisible = true
+                        textInput.setText("")
+                    }
+                    "Time" -> {
+                        textInputLayout.hint = "Seconds"
+                        textInputLayout.isEnabled = true
+                        transparentLayer.isVisible = false
+                    }
+                    "Rep" -> {
+                        textInputLayout.hint = "Amount"
+                        textInputLayout.isEnabled = true
+                        transparentLayer.isVisible = false
+                    }
+                }
+            }
+        }
+        materialDialog.show()
+    }
+
     private fun getSessionSettings() {
-        mSessionExercise = mSettingsSingleton.getSetting(SettingConstants.EXERCISE_STRING) as String
-        mSessionMode = mSettingsSingleton.getSetting(SettingConstants.MODE_STRING) as String
+        mSessionExercise = mDataSingleton.getSetting(DataConstants.EXERCISE_STRING) as String
+        mSessionMode = mDataSingleton.getSetting(DataConstants.MODE_STRING) as String
 
         if (mSessionMode == "Endless") {
             mSessionCount = 0
-            mSettingsSingleton.setSetting(SettingConstants.SESSION_COUNT, 0)
+            mDataSingleton.setSetting(DataConstants.SESSION_COUNT, 0)
         } else {
-            mSessionCount = mSettingsSingleton.getSetting(SettingConstants.SESSION_COUNT) as Int
+            mSessionCount = mDataSingleton.getSetting(DataConstants.SESSION_COUNT) as Int
         }
 
         binding.activityMainTextviewExercise.text = mSessionExercise

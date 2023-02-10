@@ -1,250 +1,167 @@
 package at.fhooe.mc.mtproject
 
-import android.graphics.*
-import android.graphics.drawable.Drawable
-import android.util.Log
-import androidx.camera.core.CameraSelector
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import at.fhooe.mc.mtproject.helpers.GraphicOverlay
 import com.google.mlkit.vision.pose.Pose
 import com.google.mlkit.vision.pose.PoseLandmark
-import java.util.*
 
 class PoseDetectionDrawable(
-    poseResult: Pose,
-    thresholdIFL: Double,
-    debugMode: Boolean,
-    cameraSelector: CameraSelector
-) : Drawable() {
-    private val mPose = poseResult
-    private val mThresholdIFL = thresholdIFL
-    private val mDebugMode = debugMode
-    private val mIsFrontCameraUsed = cameraSelector == CameraSelector.DEFAULT_FRONT_CAMERA
-    private var mWidth = 0
-    private var mHeight = 0
-    private var mScaleFactor = 0f
-    private var mPostScaleWidthOffset = 0f
-    private var mPostScaleHeightOffset = 0f
-    private var mTransformationMatrix = Matrix()
-    private var mTransformationMatrixUpToDate = false
+    overlay: GraphicOverlay,
+    val pose: Pose,
+    private val thresholdIFL: Double,
+) : GraphicOverlay.Graphic(overlay) {
+    private var mPaint: Paint = Paint()
+    private var mFacePaint: Paint = Paint()
+    private var mArmPaint: Paint = Paint()
+    private var mChestPaint: Paint = Paint()
+    private var mLegPaint: Paint = Paint()
+    private var mHandPaint: Paint = Paint()
+    private var mFootPaint: Paint = Paint()
+    private var mTextPaint: Paint = Paint()
+    private var mClassificationPaint: Paint = Paint()
+    private var mPointPaint: Paint = Paint()
+    private var mRightPaint: Paint = Paint()
+    private var mLeftPaint: Paint = Paint()
+    private lateinit var mCanvas: Canvas
 
-    private val paint = Paint().apply {
-        color = Color.WHITE
-        strokeWidth = STROKE_WIDTH
-        style = Paint.Style.STROKE
-        alpha = 255
+    private var zMin = java.lang.Float.MAX_VALUE
+    private var zMax = java.lang.Float.MIN_VALUE
+
+    init {
+        mPaint.color = Color.WHITE
+        mPaint.strokeWidth = STROKE_WIDTH
+        mPaint.style = Paint.Style.STROKE
+
+        mPointPaint.color = Color.WHITE
+        mPointPaint.strokeWidth = STROKE_WIDTH
+        mPointPaint.style = Paint.Style.FILL
+
+        mFacePaint.color = Color.WHITE
+        mFacePaint.strokeWidth = STROKE_WIDTH
+        mFacePaint.style = Paint.Style.FILL
+
+        mArmPaint.color = Color.WHITE
+        mArmPaint.strokeWidth = STROKE_WIDTH
+        mArmPaint.style = Paint.Style.FILL
+
+        mChestPaint.color = Color.WHITE
+        mChestPaint.strokeWidth = STROKE_WIDTH
+        mChestPaint.style = Paint.Style.FILL
+
+        mLegPaint.color = Color.WHITE
+        mLegPaint.strokeWidth = STROKE_WIDTH
+        mLegPaint.style = Paint.Style.FILL
+
+        mHandPaint.color = Color.WHITE
+        mHandPaint.strokeWidth = STROKE_WIDTH
+        mHandPaint.style = Paint.Style.FILL
+
+        mFootPaint.color = Color.WHITE
+        mFootPaint.strokeWidth = STROKE_WIDTH
+        mFootPaint.style = Paint.Style.FILL
+
+        mFootPaint.color = Color.WHITE
+        mFootPaint.strokeWidth = STROKE_WIDTH
+        mFootPaint.style = Paint.Style.FILL
+
+        mRightPaint.color = Color.RED
+        mRightPaint.strokeWidth = STROKE_WIDTH
+        mRightPaint.style = Paint.Style.FILL
+
+        mLeftPaint.color = Color.parseColor("#007EB8")
+        mLeftPaint.strokeWidth = STROKE_WIDTH
+        mLeftPaint.style = Paint.Style.FILL
+
+        mTextPaint.color = Color.WHITE
+        mTextPaint.textSize = DEBUG_TEXT_WIDTH
+        mTextPaint.setShadowLayer(10.0f, 0f, 0f, Color.BLACK)
+        mTextPaint.style = Paint.Style.FILL
+
+        mClassificationPaint.color = Color.WHITE
+        mClassificationPaint.textSize = POSE_CLASSIFICATION_TEXT_SIZE
+        mClassificationPaint.setShadowLayer(10.0f, 0f, 0f, Color.BLACK)
+        mClassificationPaint.style = Paint.Style.FILL
     }
 
-    private val pointPaint = Paint().apply {
-        color = Color.WHITE
-        strokeWidth = STROKE_WIDTH
-        style = Paint.Style.FILL
-        alpha = 255
-    }
+    override fun draw(canvas: Canvas?) {
+        if (canvas != null) {
+            mCanvas = canvas
+        }
 
-    private val facePaint = Paint().apply {
-        color = Color.WHITE
-        strokeWidth = STROKE_WIDTH
-        style = Paint.Style.FILL
-        alpha = 255
-    }
-
-    private val armPaint = Paint().apply {
-        color = Color.WHITE
-        strokeWidth = STROKE_WIDTH
-        style = Paint.Style.FILL
-        alpha = 255
-    }
-
-    private val chestPaint = Paint().apply {
-        color = Color.WHITE
-        strokeWidth = STROKE_WIDTH
-        style = Paint.Style.FILL
-        alpha = 255
-    }
-
-    private val legPaint = Paint().apply {
-        color = Color.WHITE
-        strokeWidth = STROKE_WIDTH
-        style = Paint.Style.FILL
-        alpha = 255
-    }
-
-    private val handPaint = Paint().apply {
-        color = Color.WHITE
-        strokeWidth = STROKE_WIDTH
-        style = Paint.Style.FILL
-        alpha = 255
-    }
-
-    private val footPaint = Paint().apply {
-        color = Color.WHITE
-        strokeWidth = STROKE_WIDTH
-        style = Paint.Style.FILL
-        alpha = 255
-    }
-
-    private val rightPaint = Paint().apply {
-        color = Color.RED
-        strokeWidth = STROKE_WIDTH
-        style = Paint.Style.FILL
-        alpha = 255
-    }
-
-    private val leftPaint = Paint().apply {
-        color = Color.parseColor("#007EB8")
-        strokeWidth = STROKE_WIDTH
-        style = Paint.Style.FILL
-        alpha = 255
-    }
-
-    private val textPaint = Paint().apply {
-        color = Color.WHITE
-        textSize = DEBUG_TEXT_WIDTH
-        setShadowLayer(10.0f, 0f, 0f, Color.BLACK)
-        style = Paint.Style.FILL
-        alpha = 255
-    }
-
-    private val classificationPaint = Paint().apply {
-        color = Color.WHITE
-        textSize = POSE_CLASSIFICATION_TEXT_SIZE
-        setShadowLayer(10.0f, 0f, 0f, Color.BLACK)
-        style = Paint.Style.FILL
-        alpha = 255
-    }
-
-    override fun setAlpha(alpha: Int) {
-        paint.alpha = alpha
-        pointPaint.alpha = alpha
-        facePaint.alpha = alpha
-        armPaint.alpha = alpha
-        chestPaint.alpha = alpha
-        legPaint.alpha = alpha
-        handPaint.alpha = alpha
-        footPaint.alpha = alpha
-        rightPaint.alpha = alpha
-        leftPaint.alpha = alpha
-        textPaint.alpha = alpha
-        classificationPaint.alpha = alpha
-    }
-
-    override fun setColorFilter(colorFilter: ColorFilter?) {
-        paint.colorFilter = colorFilter
-        pointPaint.colorFilter = colorFilter
-        facePaint.colorFilter = colorFilter
-        armPaint.colorFilter = colorFilter
-        chestPaint.colorFilter = colorFilter
-        legPaint.colorFilter = colorFilter
-        handPaint.colorFilter = colorFilter
-        footPaint.colorFilter = colorFilter
-        rightPaint.colorFilter = colorFilter
-        leftPaint.colorFilter = colorFilter
-        textPaint.colorFilter = colorFilter
-        classificationPaint.colorFilter = colorFilter
-    }
-
-    @Deprecated("Deprecated in Java")
-    override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
-
-
-    override fun draw(canvas: Canvas) {
-        mWidth = canvas.width
-        mHeight = canvas.height
-        createTransformationMatrix(mTransformationMatrix, 480f, 360f)
-
-        Log.e("postScaleWidthOffset", mPostScaleWidthOffset.toString())
-        Log.e("postScaleHeightOffset", mPostScaleHeightOffset.toString())
-        Log.e("scaleFactor", mScaleFactor.toString())
-
-        val nose = mPose.getPoseLandmark(PoseLandmark.NOSE)?.position3D
-        val leftEye = mPose.getPoseLandmark(PoseLandmark.LEFT_EYE)?.position3D
-        val rightEye = mPose.getPoseLandmark(PoseLandmark.RIGHT_EYE)?.position3D
-
-        Log.e("leftEye", leftEye.toString())
-        Log.e("rightEye", rightEye.toString())
-
-        Log.e("leftEyeXTranslated", translateX(leftEye!!.x).toString())
-        Log.e("leftEyeYTranslated", translateY(leftEye.y).toString())
-
-        canvas.drawLine(
-            translateX(leftEye!!.x),
-            translateY(leftEye.y),
-            translateX(rightEye!!.x),
-            translateY(rightEye.y),
-            rightPaint
-        )
-
-        val landmarks = mPose.allPoseLandmarks
+        val landmarks = pose.allPoseLandmarks
         if (landmarks.isEmpty()) {
             return
         }
 
-        initLandmarks(canvas)
-//
-//        for (landmark in landmarks) {
-//            if (checkPoint(landmark)) {
-//                drawPoint(canvas, landmark, pointPaint)
-//            }
-//        }
+        initLandmarks(mCanvas)
+
+        for (landmark in landmarks) {
+            if (checkPoint(landmark)) {
+                drawPoint(mCanvas, landmark, mPointPaint)
+            }
+        }
     }
 
     private fun initLandmarks(canvas: Canvas) {
-        val nose = mPose.getPoseLandmark(PoseLandmark.NOSE)
-        val leftEyeInner = mPose.getPoseLandmark(PoseLandmark.LEFT_EYE_INNER)
-        val leftEye = mPose.getPoseLandmark(PoseLandmark.LEFT_EYE)
-        val leftEyeOuter = mPose.getPoseLandmark(PoseLandmark.LEFT_EYE_OUTER)
-        val rightEyeInner = mPose.getPoseLandmark(PoseLandmark.RIGHT_EYE_INNER)
-        val rightEye = mPose.getPoseLandmark(PoseLandmark.RIGHT_EYE)
-        val rightEyeOuter = mPose.getPoseLandmark(PoseLandmark.RIGHT_EYE_OUTER)
-        val leftEar = mPose.getPoseLandmark(PoseLandmark.LEFT_EAR)
-        val rightEar = mPose.getPoseLandmark(PoseLandmark.RIGHT_EAR)
-        val leftMouth = mPose.getPoseLandmark(PoseLandmark.LEFT_MOUTH)
-        val rightMouth = mPose.getPoseLandmark(PoseLandmark.RIGHT_MOUTH)
+        val nose = pose.getPoseLandmark(PoseLandmark.NOSE)
+        val leftEyeInner = pose.getPoseLandmark(PoseLandmark.LEFT_EYE_INNER)
+        val leftEye = pose.getPoseLandmark(PoseLandmark.LEFT_EYE)
+        val leftEyeOuter = pose.getPoseLandmark(PoseLandmark.LEFT_EYE_OUTER)
+        val rightEyeInner = pose.getPoseLandmark(PoseLandmark.RIGHT_EYE_INNER)
+        val rightEye = pose.getPoseLandmark(PoseLandmark.RIGHT_EYE)
+        val rightEyeOuter = pose.getPoseLandmark(PoseLandmark.RIGHT_EYE_OUTER)
+        val leftEar = pose.getPoseLandmark(PoseLandmark.LEFT_EAR)
+        val rightEar = pose.getPoseLandmark(PoseLandmark.RIGHT_EAR)
+        val leftMouth = pose.getPoseLandmark(PoseLandmark.LEFT_MOUTH)
+        val rightMouth = pose.getPoseLandmark(PoseLandmark.RIGHT_MOUTH)
 
-        val leftShoulder = mPose.getPoseLandmark(PoseLandmark.LEFT_SHOULDER)
-        val rightShoulder = mPose.getPoseLandmark(PoseLandmark.RIGHT_SHOULDER)
-        val leftElbow = mPose.getPoseLandmark(PoseLandmark.LEFT_ELBOW)
-        val rightElbow = mPose.getPoseLandmark(PoseLandmark.RIGHT_ELBOW)
-        val leftWrist = mPose.getPoseLandmark(PoseLandmark.LEFT_WRIST)
-        val rightWrist = mPose.getPoseLandmark(PoseLandmark.RIGHT_WRIST)
-        val leftHip = mPose.getPoseLandmark(PoseLandmark.LEFT_HIP)
-        val rightHip = mPose.getPoseLandmark(PoseLandmark.RIGHT_HIP)
-        val leftKnee = mPose.getPoseLandmark(PoseLandmark.LEFT_KNEE)
-        val rightKnee = mPose.getPoseLandmark(PoseLandmark.RIGHT_KNEE)
-        val leftAnkle = mPose.getPoseLandmark(PoseLandmark.LEFT_ANKLE)
-        val rightAnkle = mPose.getPoseLandmark(PoseLandmark.RIGHT_ANKLE)
+        val leftShoulder = pose.getPoseLandmark(PoseLandmark.LEFT_SHOULDER)
+        val rightShoulder = pose.getPoseLandmark(PoseLandmark.RIGHT_SHOULDER)
+        val leftElbow = pose.getPoseLandmark(PoseLandmark.LEFT_ELBOW)
+        val rightElbow = pose.getPoseLandmark(PoseLandmark.RIGHT_ELBOW)
+        val leftWrist = pose.getPoseLandmark(PoseLandmark.LEFT_WRIST)
+        val rightWrist = pose.getPoseLandmark(PoseLandmark.RIGHT_WRIST)
+        val leftHip = pose.getPoseLandmark(PoseLandmark.LEFT_HIP)
+        val rightHip = pose.getPoseLandmark(PoseLandmark.RIGHT_HIP)
+        val leftKnee = pose.getPoseLandmark(PoseLandmark.LEFT_KNEE)
+        val rightKnee = pose.getPoseLandmark(PoseLandmark.RIGHT_KNEE)
+        val leftAnkle = pose.getPoseLandmark(PoseLandmark.LEFT_ANKLE)
+        val rightAnkle = pose.getPoseLandmark(PoseLandmark.RIGHT_ANKLE)
 
-        val leftPinky = mPose.getPoseLandmark(PoseLandmark.LEFT_PINKY)
-        val rightPinky = mPose.getPoseLandmark(PoseLandmark.RIGHT_PINKY)
-        val leftIndex = mPose.getPoseLandmark(PoseLandmark.LEFT_INDEX)
-        val rightIndex = mPose.getPoseLandmark(PoseLandmark.RIGHT_INDEX)
-        val leftThumb = mPose.getPoseLandmark(PoseLandmark.LEFT_THUMB)
-        val rightThumb = mPose.getPoseLandmark(PoseLandmark.RIGHT_THUMB)
-        val leftHeel = mPose.getPoseLandmark(PoseLandmark.LEFT_HEEL)
-        val rightHeel = mPose.getPoseLandmark(PoseLandmark.RIGHT_HEEL)
-        val leftFootIndex = mPose.getPoseLandmark(PoseLandmark.LEFT_FOOT_INDEX)
-        val rightFootIndex = mPose.getPoseLandmark(PoseLandmark.RIGHT_FOOT_INDEX)
+        val leftPinky = pose.getPoseLandmark(PoseLandmark.LEFT_PINKY)
+        val rightPinky = pose.getPoseLandmark(PoseLandmark.RIGHT_PINKY)
+        val leftIndex = pose.getPoseLandmark(PoseLandmark.LEFT_INDEX)
+        val rightIndex = pose.getPoseLandmark(PoseLandmark.RIGHT_INDEX)
+        val leftThumb = pose.getPoseLandmark(PoseLandmark.LEFT_THUMB)
+        val rightThumb = pose.getPoseLandmark(PoseLandmark.RIGHT_THUMB)
+        val leftHeel = pose.getPoseLandmark(PoseLandmark.LEFT_HEEL)
+        val rightHeel = pose.getPoseLandmark(PoseLandmark.RIGHT_HEEL)
+        val leftFootIndex = pose.getPoseLandmark(PoseLandmark.LEFT_FOOT_INDEX)
+        val rightFootIndex = pose.getPoseLandmark(PoseLandmark.RIGHT_FOOT_INDEX)
 
         // Face
-        drawLine(canvas, nose, leftEyeInner, facePaint)
-        drawLine(canvas, leftEyeInner, leftEye, facePaint)
-        drawLine(canvas, leftEye, leftEyeOuter, facePaint)
+        drawLine(canvas, nose, leftEyeInner, mFacePaint)
+        drawLine(canvas, leftEyeInner, leftEye, mFacePaint)
+        drawLine(canvas, leftEye, leftEyeOuter, mFacePaint)
 //        drawLine(canvas, leftEyeOuter, leftEar, mFacePaint)
-        drawLine(canvas, nose, rightEyeInner, facePaint)
-        drawLine(canvas, rightEyeInner, rightEye, facePaint)
-        drawLine(canvas, rightEye, rightEyeOuter, facePaint)
+        drawLine(canvas, nose, rightEyeInner, mFacePaint)
+        drawLine(canvas, rightEyeInner, rightEye, mFacePaint)
+        drawLine(canvas, rightEye, rightEyeOuter, mFacePaint)
 //        drawLine(canvas, rightEyeOuter, rightEar, mFacePaint)
-        drawLine(canvas, leftMouth, rightMouth, facePaint)
+        drawLine(canvas, leftMouth, rightMouth, mFacePaint)
 
         // Chest
-        drawLine(canvas, leftShoulder, rightShoulder, chestPaint)
-        drawLine(canvas, leftShoulder, leftHip, chestPaint)
-        drawLine(canvas, rightShoulder, rightHip, chestPaint)
+        drawLine(canvas, leftShoulder, rightShoulder, mChestPaint)
+        drawLine(canvas, leftShoulder, leftHip, mChestPaint)
+        drawLine(canvas, rightShoulder, rightHip, mChestPaint)
 
         // Arms
-        drawLine(canvas, leftShoulder, leftElbow, leftPaint)
-        drawLine(canvas, leftElbow, leftWrist, leftPaint)
-        drawLine(canvas, rightShoulder, rightElbow, rightPaint)
-        drawLine(canvas, rightElbow, rightWrist, rightPaint)
+        drawLine(canvas, leftShoulder, leftElbow, mLeftPaint)
+        drawLine(canvas, leftElbow, leftWrist, mLeftPaint)
+        drawLine(canvas, rightShoulder, rightElbow, mRightPaint)
+        drawLine(canvas, rightElbow, rightWrist, mRightPaint)
 
 //        // Hands
 //        drawLine(canvas, leftWrist, leftThumb, mHandPaint)
@@ -257,11 +174,11 @@ class PoseDetectionDrawable(
 //        drawLine(canvas, rightIndex, rightPinky, mHandPaint)
 
         // Legs
-        drawLine(canvas, leftHip, rightHip, legPaint)
-        drawLine(canvas, leftHip, leftKnee, leftPaint)
-        drawLine(canvas, leftKnee, leftAnkle, leftPaint)
-        drawLine(canvas, rightHip, rightKnee, rightPaint)
-        drawLine(canvas, rightKnee, rightAnkle, rightPaint)
+        drawLine(canvas, leftHip, rightHip, mLegPaint)
+        drawLine(canvas, leftHip, leftKnee, mLeftPaint)
+        drawLine(canvas, leftKnee, leftAnkle, mLeftPaint)
+        drawLine(canvas, rightHip, rightKnee, mRightPaint)
+        drawLine(canvas, rightKnee, rightAnkle, mRightPaint)
 
         // Feet
 //        drawLine(canvas, leftAnkle, leftHeel, mFootPaint)
@@ -270,23 +187,10 @@ class PoseDetectionDrawable(
 //        drawLine(canvas, rightHeel, rightFootIndex, mFootPaint)
     }
 
-
     private fun drawPoint(canvas: Canvas, landmark: PoseLandmark, paint: Paint) {
-        if (landmark.inFrameLikelihood >= mThresholdIFL) {
+        if (landmark.inFrameLikelihood >= thresholdIFL) {
             val point = landmark.position3D
-            canvas.drawCircle(point.x, point.y, PoseDetectionDrawable.DOT_RADIUS, paint)
-            if (mDebugMode) {
-                val paintDebug = Paint()
-                paintDebug.color = Color.GREEN
-                paintDebug.textSize = PoseDetectionDrawable.IN_FRAME_LIKELIHOOD_TEXT_SIZE
-
-                canvas.drawText(
-                    String.format(Locale.US, "%.2f", landmark.inFrameLikelihood),
-                    landmark.position.x + 5,
-                    landmark.position.y + 20,
-                    paintDebug
-                )
-            }
+            canvas.drawCircle(translateX(point.x), translateY(point.y), DOT_RADIUS, paint)
         }
     }
 
@@ -296,7 +200,7 @@ class PoseDetectionDrawable(
         endLandmark: PoseLandmark?,
         paint: Paint
     ) {
-        if (startLandmark != null && endLandmark != null && startLandmark.inFrameLikelihood >= mThresholdIFL && endLandmark.inFrameLikelihood >= mThresholdIFL) {
+        if (startLandmark != null && endLandmark != null && startLandmark.inFrameLikelihood >= thresholdIFL && endLandmark.inFrameLikelihood >= thresholdIFL) {
             val start = startLandmark.position3D
             val end = endLandmark.position3D
 
@@ -309,27 +213,6 @@ class PoseDetectionDrawable(
             )
         }
     }
-
-//    private fun debugText() {
-//        mCanvas.drawText(
-//            "RES: ${resolution.height} x ${resolution.width}",
-//            35f,
-//            actionBarHeight + 150f,
-//            mTextPaint
-//        )
-//
-//        mCanvas.drawText("FPS: ${1000 / fps}", 35f, actionBarHeight + 200f, mTextPaint)
-//        mCanvas.drawText(
-//            "THRESHOLD IFL: ${(thresholdIFL * 100).toInt()}",
-//            35f,
-//            actionBarHeight + 250f,
-//            mTextPaint
-//        )
-//
-//        val model = if (modelUsed == 0) "MLKit Fast" else "MLKit Accurate"
-//
-//        mCanvas.drawText("MODEL: $model", 35f, actionBarHeight + 300f, mTextPaint)
-//    }
 
     private fun checkPoint(point: PoseLandmark): Boolean {
         when (point.landmarkType) {
@@ -349,61 +232,8 @@ class PoseDetectionDrawable(
         return true
     }
 
-
-    private fun createTransformationMatrix(
-        matrix: Matrix,
-        analyzerWidth: Float,
-        analyzerHeight: Float
-    ) {
-        if (mTransformationMatrixUpToDate) {
-            return
-        }
-
-        val analyzerAspectRatio = analyzerWidth / analyzerHeight
-        val canvasAspectRatio = mWidth.toFloat() / mHeight.toFloat()
-        mPostScaleWidthOffset = 0f
-        mPostScaleHeightOffset = 0f
-
-        if (analyzerAspectRatio > canvasAspectRatio) {
-            mScaleFactor = analyzerWidth / mWidth.toFloat()
-            mPostScaleHeightOffset =
-                (analyzerWidth / canvasAspectRatio - analyzerHeight) / 2f
-        } else {
-            mScaleFactor = analyzerHeight / mHeight.toFloat()
-            mPostScaleWidthOffset =
-                (analyzerHeight * canvasAspectRatio - analyzerWidth) / 2f
-        }
-
-        mTransformationMatrix.reset()
-        mTransformationMatrix.setScale(mScaleFactor, mScaleFactor)
-        mTransformationMatrix.postTranslate(-mPostScaleWidthOffset, -mPostScaleHeightOffset)
-
-        if (mIsFrontCameraUsed) {
-            mTransformationMatrix.postScale(-1f, 1f, analyzerWidth / 2f, analyzerHeight / 2f)
-        }
-
-        mTransformationMatrixUpToDate = true
-    }
-
-
-    private fun translateX(x: Float): Float {
-        return if (mIsFrontCameraUsed) {
-            mWidth - ((mScaleFactor * x) - mPostScaleWidthOffset)
-        } else {
-            (mScaleFactor * x) - mPostScaleWidthOffset
-        }
-    }
-
-    /**
-     * Adjusts the y coordinate from the image's coordinate system to the view coordinate system.
-     */
-    private fun translateY(y: Float): Float {
-        return (mScaleFactor * y) + mPostScaleHeightOffset
-    }
-
     private companion object {
         const val DOT_RADIUS = 7.0f
-        const val IN_FRAME_LIKELIHOOD_TEXT_SIZE = 23.0f
         const val STROKE_WIDTH = 6.0f
         const val DEBUG_TEXT_WIDTH = 45.0f
         const val POSE_CLASSIFICATION_TEXT_SIZE = 60.0f
