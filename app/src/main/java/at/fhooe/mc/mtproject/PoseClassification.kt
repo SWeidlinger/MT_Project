@@ -45,9 +45,8 @@ class PoseClassification(context: Context, dataSingleton: DataSingleton) {
                     }
                 }
             }
+            mPoseClassifier = PoseClassifier(mPoseSampleArray)
         }
-
-        mPoseClassifier = PoseClassifier(mPoseSampleArray)
 
         val chosenExercise: ArrayList<String> = arrayListOf()
 
@@ -99,13 +98,16 @@ class PoseClassification(context: Context, dataSingleton: DataSingleton) {
                         / mPoseClassifier.confidenceRange()
             )
             result.add(maxConfidenceClassResult)
+            result.add(maxConfidenceClass)
         }
 
         return result
     }
 
     fun clearRepetitions() {
-        mRepCounter.clear()
+        if (mRepCounter.isNotEmpty()) {
+            mRepCounter.clear()
+        }
         loadPoseSamples(mContext)
     }
 

@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.RecyclerView
 import at.fhooe.mc.mtproject.R
 import at.fhooe.mc.mtproject.DataConstants
 import at.fhooe.mc.mtproject.DataSingleton
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.card.MaterialCardView
 
 class SessionSettingsAdapter(
@@ -16,6 +17,7 @@ class SessionSettingsAdapter(
     context: Context,
     isExercise: Boolean,
     initialSelection: String,
+    private val dialog: BottomSheetDialog
 ) :
     RecyclerView.Adapter<SessionSettingsAdapter.SessionViewHolder>() {
     private var mIsCheckedHolder: SessionViewHolder? = null
@@ -49,6 +51,7 @@ class SessionSettingsAdapter(
             mIsCheckedHolder?.cardView?.isChecked = false
             mIsCheckedHolder = holder
             saveSetting(position)
+            dialog.dismiss()
         }
     }
 

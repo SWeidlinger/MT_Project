@@ -71,7 +71,7 @@
 
     <style name="DialogCorners">
         <item name="cornerFamily">rounded</item>
-        <item name="cornerSize">20dp</item>
+        <item name="cornerSize">10dp</item>
     </style>
 
     <style name="MyTitle_MaterialAlertDialog.MaterialComponents.Title.Text" parent="@style/MaterialAlertDialog.MaterialComponents.Title.Text">
@@ -82,6 +82,15 @@
     <style name="BodyTextAppearance.MaterialComponents.Body" parent="@style/MaterialAlertDialog.MaterialComponents.Body.Text">
         <item name="android:textColor">@color/white</item>
         <item name="android:textSize">15sp</item>
+    </style>
+
+
+    <style name="AppTheme.FullScreenDialog" parent="Theme.MaterialComponents.Light.Dialog">
+        <item name="colorPrimaryDark">@color/semi_transparent</item>
+        <item name="colorAccent">@color/semi_transparent</item>
+        <item name="colorPrimary">@color/cardViewBackground</item>
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:windowBackground">@color/cardViewBackground</item>
     </style>
 
 </resources>

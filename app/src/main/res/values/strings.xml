@@ -7,9 +7,11 @@
     <string name="preference_category_general">General</string>
     <string name="preference_category_camera">Camera</string>
     <string name="preference_list_resolutions">Resolution</string>
-    <string name="preference_switch_switch_sync_preview_and_overlay">Sync Preview and Overlay</string>
+    <string name="preference_switch_sync_preview_and_overlay">Sync Preview and Overlay</string>
     <string name="preference_category_model">Model</string>
     <string name="preference_list_models">Model</string>
     <string name="preference_edit_text_threshold_ifl">Threshold IFL</string>
+    <string name="reference_switch_detailed_rep_info">Rep Replay</string>
+    <string name="preference_edit_text_max_frames_rep">Max Frames for Rep</string>
 
 </resources>

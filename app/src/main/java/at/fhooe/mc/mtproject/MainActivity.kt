@@ -3,11 +3,8 @@ package at.fhooe.mc.mtproject
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
-import android.app.Dialog
 import android.content.*
 import android.content.pm.PackageManager
-import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
 import android.media.MediaPlayer
 import android.os.*
 import android.util.Log
@@ -20,16 +17,18 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.PreviewView
 import androidx.cardview.widget.CardView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.view.drawToBitmap
 import androidx.core.view.isVisible
 import androidx.core.widget.doAfterTextChanged
 import androidx.recyclerview.widget.LinearLayoutManager
 import at.fhooe.mc.mtproject.bottomSheet.BottomSheetFragmentSession
 import at.fhooe.mc.mtproject.databinding.ActivityMainBinding
 import at.fhooe.mc.mtproject.databinding.BottomSheetSessionSettingsBinding
-import at.fhooe.mc.mtproject.databinding.DialogSesssionSettingsBinding
+import at.fhooe.mc.mtproject.databinding.BottomSheetSessionSettingsSelectionBinding
 import at.fhooe.mc.mtproject.helpers.BitmapUtils
 import at.fhooe.mc.mtproject.helpers.CameraImageGraphic
 import at.fhooe.mc.mtproject.helpers.GraphicOverlay
@@ -39,7 +38,6 @@ import at.fhooe.mc.mtproject.speechRecognition.PorcupineService
 import at.fhooe.mc.mtproject.speechRecognition.PorcupineService.LocalBinder
 import at.fhooe.mc.mtproject.speechRecognition.ServiceCallbacks
 import com.google.android.material.bottomsheet.BottomSheetDialog
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.google.mlkit.vision.common.InputImage
@@ -61,6 +59,7 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
     private var mImageResolution: Size = Size(480, 640)
     private lateinit var mImageAnalyzer: ImageAnalysis
     private lateinit var mPreview: Preview
+    private lateinit var mPreviewView: PreviewView
     private lateinit var mGraphicOverlay: GraphicOverlay
     private var mPrevTime: Long = 0
     private var mCurrentTime: Long = 0
@@ -80,6 +79,7 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
     // Select back camera as default
     private var mCameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
     private var mDebugMode = false
+    private var mDetailedRepInfo = true
     private lateinit var mResultLauncher: ActivityResultLauncher<Intent>
     private var mModel = "MLKit Normal"
     private var mSyncPreviewAndOverlay = false
@@ -107,6 +107,18 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
 
     private var mCameraSettingSelection = 0
 
+    private var mCameraBitmapList = arrayListOf<ExerciseBitmap>()
+    private var mOverlayBitmapList = arrayListOf<ExerciseBitmap>()
+
+    private var mSquatReps = 0
+    private var mPushUpReps = 0
+    private var mSitUpReps = 0
+    private var mRepStartTime = 0L
+
+    private var mMaxFramesRep = 50
+    private var mCurrentFrameCount = 0
+    private var mSaveActiveMovement = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -124,6 +136,8 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
         mPrevTime = SystemClock.elapsedRealtime()
 
         mGraphicOverlay = binding.activityMainGraphicOverlay
+        mPreviewView = binding.activityMainPreviewView
+
         //switch to front camera if saved in settings
         if (mCameraSettingSelection == 1) {
             mCameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
@@ -226,6 +240,10 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
             mDataSingleton.getSetting(DataConstants.COUNTDOWN_TIMER) as Int
         mSyncPreviewAndOverlay =
             mDataSingleton.getSetting(DataConstants.SYNC_PREVIEW_AND_OVERLAY) as Boolean
+        mDetailedRepInfo = mDataSingleton.getSetting(DataConstants.DETAILED_REP_INFO) as Boolean
+        mMaxFramesRep = mDataSingleton.getSetting(DataConstants.MAX_FRAMES_REP) as Int
+        mSaveActiveMovement =
+            mDataSingleton.getSetting(DataConstants.SAVE_ACTIVE_MOVEMENT) as Boolean
 
         val spinnerModePrev = mSpinnerModelID
         mSpinnerModelID = mDataSingleton.getSetting(DataConstants.MODEL) as Int
@@ -303,6 +321,15 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
             val image = imageProxy.image ?: return@setAnalyzer
             val inputImage = InputImage.fromMediaImage(image, rotationDegrees)
 
+            //might be needed inside the pose detector on success listener since
+            //if it is not inside this might lead to problems when switching the camera
+            //while a session is active
+            mGraphicOverlay.setImageSourceInfo(
+                imageProxy.height,
+                imageProxy.width,
+                mCameraSelector == CameraSelector.DEFAULT_FRONT_CAMERA
+            )
+
             mPoseDetector
                 .process(inputImage)
                 .addOnFailureListener {
@@ -310,14 +337,6 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
                 }.addOnSuccessListener { pose ->
                     mPrevTime = mCurrentTime
                     mCurrentTime = SystemClock.elapsedRealtime()
-                    val frontCameraUsed =
-                        mCameraSelector == CameraSelector.DEFAULT_FRONT_CAMERA
-
-                    mGraphicOverlay.setImageSourceInfo(
-                        imageProxy.height,
-                        imageProxy.width,
-                        frontCameraUsed
-                    )
 
                     var poseClassification: ArrayList<String>? = null
                     var repCounter: ArrayList<RepetitionCounter>? = null
@@ -326,6 +345,53 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
                         repCounter = mPoseClassification.getRepetitionCounterFull()
                     } else {
                         mPoseClassification.clearRepetitions()
+                    }
+
+                    //check the repCounter if any repCount increased and then
+                    //add the DetailedRepData object to the corresponding list in the singleton
+                    if (!repCounter.isNullOrEmpty()) {
+                        val detailedRep = DetailedRepData(
+                            cameraBitmapList = mCameraBitmapList,
+                            overlayBitmapList = mOverlayBitmapList,
+                            duration = SystemClock.elapsedRealtime() - mRepStartTime
+                        )
+
+                        repCounter.forEach {
+                            when (it.className) {
+                                PoseClassification.SQUATS_CLASS -> {
+                                    if (mSquatReps < it.numRepeats) {
+                                        Log.e("DEBUG", "INSIDE SAVING TO SINGLETON")
+
+                                        mDataSingleton.mRepListSquats.add(detailedRep)
+                                        mSquatReps = it.numRepeats
+                                        mCameraBitmapList = arrayListOf()
+                                        mOverlayBitmapList = arrayListOf()
+                                        mRepStartTime = 0L
+                                        mCurrentFrameCount = 0
+                                    }
+                                }
+                                PoseClassification.PUSHUPS_CLASS -> {
+                                    if (mPushUpReps < it.numRepeats) {
+                                        mDataSingleton.mRepListPushUps.add(detailedRep)
+                                        mPushUpReps = it.numRepeats
+                                        mCameraBitmapList = arrayListOf()
+                                        mOverlayBitmapList = arrayListOf()
+                                        mRepStartTime = 0L
+                                        mCurrentFrameCount = 0
+                                    }
+                                }
+                                PoseClassification.SITUPS_CLASS -> {
+                                    if (mSitUpReps < it.numRepeats) {
+                                        mDataSingleton.mRepListSitUps.add(detailedRep)
+                                        mSitUpReps = it.numRepeats
+                                        mCameraBitmapList = arrayListOf()
+                                        mOverlayBitmapList = arrayListOf()
+                                        mRepStartTime = 0L
+                                        mCurrentFrameCount = 0
+                                    }
+                                }
+                            }
+                        }
                     }
 
                     //add to cardView when rep mode activated
@@ -343,43 +409,107 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
                         }
                     }
 
-                    val element = PoseDetectionDrawable(
+                    //increase count of right cardView in endless mode for every recorded exercise
+                    if (mSessionMode == "Endless") {
+                        var allReps = 0
+                        repCounter?.forEach {
+                            allReps += it.numRepeats
+                        }
+                        binding.activityMainTextviewSessionCount.text = allReps.toString()
+                    }
+
+                    mGraphicOverlay.clear()
+
+                    val cameraPreviewBitmap = BitmapUtils.getBitmap(imageProxy)
+
+                    mGraphicOverlay.add(CameraImageGraphic(mGraphicOverlay, cameraPreviewBitmap))
+
+                    if (mSessionActive && !poseClassification.isNullOrEmpty() && poseClassification.size > 2) {
+                        val exerciseClass = poseClassification[2]
+
+                        val exerciseBitmap =
+                            ExerciseBitmap(exerciseClass, mGraphicOverlay.drawToBitmap())
+
+                        //future me sorry for that, basically what it does it only adds the bitmap if the DetailedRep is active
+                        //also only adds the certain classes that are defined as active if the saveActiveMovement switch is active
+                        if (mDetailedRepInfo) {
+                            if (mCameraBitmapList.size >= mMaxFramesRep) {
+                                if (mCurrentFrameCount >= mCameraBitmapList.size) {
+                                    mCurrentFrameCount = 0
+                                }
+                                if (mSaveActiveMovement) {
+                                    if (exerciseClass == "squats_down" || exerciseClass == "pushups_down" || exerciseClass == "situps_up") {
+                                        mCameraBitmapList[mCurrentFrameCount] = exerciseBitmap
+                                    }
+                                }else{
+                                    mCameraBitmapList[mCurrentFrameCount] = exerciseBitmap
+                                }
+                            } else {
+                                if (mSaveActiveMovement) {
+                                    if (exerciseClass == "squats_down" || exerciseClass == "pushups_down" || exerciseClass == "situps_up") {
+                                        mCameraBitmapList.add(exerciseBitmap)
+
+                                    }
+                                }else{
+                                    mCameraBitmapList.add(exerciseBitmap)
+                                }
+                            }
+                        }
+                    }
+
+                    val poseDetectionDrawable = PoseDetectionDrawable(
                         mGraphicOverlay,
                         pose,
                         mThresholdIFL / 100.0
                     )
 
-                    mGraphicOverlay.clear()
+                    mGraphicOverlay.add(poseDetectionDrawable)
 
-                    //sync cameraPreview and Graphic Overlay
-                    if (mSyncPreviewAndOverlay) {
-                        mGraphicOverlay.add(
-                            CameraImageGraphic(
-                                mGraphicOverlay,
-                                BitmapUtils.getBitmap(imageProxy)
+                    //only save the bitmap if a session is running and a pose is detected
+                    if (mSessionActive && !poseClassification.isNullOrEmpty() && poseClassification.size > 2) {
+                        //start the timer for the repetition
+                        if (mRepStartTime == 0L) {
+                            mRepStartTime = SystemClock.elapsedRealtime()
+                        }
+
+                        val exerciseClass = poseClassification[2]
+                        if (mDetailedRepInfo) {
+                            val exerciseBitmap = ExerciseBitmap(
+                                exerciseClass,
+                                mGraphicOverlay.drawToBitmap()
                             )
-                        )
+
+                            //only add new frames if its under the threshold
+                            //otherwise replace the old ones with new ones
+                            if (mOverlayBitmapList.size >= mMaxFramesRep) {
+                                if (mCurrentFrameCount >= mOverlayBitmapList.size) {
+                                    mCurrentFrameCount = 0
+                                }
+                                if (mSaveActiveMovement) {
+                                    if (exerciseClass == "squats_down" || exerciseClass == "pushups_down" || exerciseClass == "situps_up") {
+                                        mOverlayBitmapList[mCurrentFrameCount++] = exerciseBitmap
+                                    }
+                                } else {
+                                    mOverlayBitmapList[mCurrentFrameCount++] = exerciseBitmap
+                                }
+                            } else {
+                                //only add bitmap if the class is the correct one if saveActiveMovement is active
+                                if (mSaveActiveMovement) {
+                                    if (exerciseClass == "squats_down" || exerciseClass == "pushups_down" || exerciseClass == "situps_up") {
+                                        mOverlayBitmapList.add(exerciseBitmap)
+                                    }
+                                } else {
+                                    mOverlayBitmapList.add(exerciseBitmap)
+                                }
+                            }
+                        }
                     }
 
-                    mGraphicOverlay.add(element)
-                    mGraphicOverlay.postInvalidate()
-
-                    //code to get the preview working in the detailed repScreen once the algorithm works alright
-//                    mDataSingleton.mOverlayBitmapList.add(mGraphicOverlay.drawToBitmap())
-//                    mDataSingleton.mOverlayBitmapList.forEach {
-//                        testOverlay.clear()
-//                        testOverlay.add(
-//                            CameraImageGraphic(
-//                                testOverlay,
-//                                Bitmap.createScaledBitmap(
-//                                    it,
-//                                    testOverlay.width,
-//                                    testOverlay.height,
-//                                    false
-//                                )
-//                            )
-//                        )
-//                    }
+                    //clear the overlay if not synced so it does not show cameraBitmap
+                    if (!mSyncPreviewAndOverlay) {
+                        mGraphicOverlay.clear()
+                        mGraphicOverlay.add(poseDetectionDrawable)
+                    }
 
                     if (mDebugMode) {
                         val debugOverlay = DebugOverlayDrawable(
@@ -392,7 +522,10 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
                             mThresholdIFL / 100.0,
                             supportActionBar!!.height,
                             mSpinnerModelID,
-                            mSyncPreviewAndOverlay
+                            mSyncPreviewAndOverlay,
+                            mDetailedRepInfo,
+                            mMaxFramesRep,
+                            mSaveActiveMovement
                         )
                         mGraphicOverlay.add(debugOverlay)
                     }
@@ -590,12 +723,9 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
         textInput: TextInputEditText,
         transparentLayer: CardView
     ) {
-        val dialog = Dialog(this)
-        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
-        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-        val dialogBinding = DialogSesssionSettingsBinding.inflate(dialog.layoutInflater)
+        val dialog = BottomSheetDialog(this)
+        val dialogBinding = BottomSheetSessionSettingsSelectionBinding.inflate(dialog.layoutInflater)
         dialog.setContentView(dialogBinding.root)
-        dialog.setCancelable(false)
 
         val title = dialogBinding.customDialogSessionSettingsTitle
         title.text = dialogTitle
@@ -605,18 +735,12 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
             recyclerViewElements,
             this,
             isExercise,
-            currentSelection
+            currentSelection,
+            dialog
         )
         recyclerViewExercise.layoutManager = LinearLayoutManager(this)
 
-        val cancel = dialogBinding.customDialogSessionSettingBtnCancel
-        cancel.setOnClickListener {
-            dialog.dismiss()
-        }
-
-        val save = dialogBinding.customDialogSessionSettingBtnSave
-        save.setOnClickListener {
-            dialog.dismiss()
+        dialog.setOnDismissListener {
             getSessionSettings()
             //update text in bottomSheet
             if (isExercise) {
@@ -644,57 +768,6 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
             }
         }
         dialog.show()
-    }
-
-    private fun showSessionOptionsMaterialDialog(
-        dialogTitle: String,
-        recyclerViewElements: ArrayList<String>,
-        isExercise: Boolean,
-        currentSelection: String,
-        sessionConfigurationText: TextView,
-        textInputLayout: TextInputLayout,
-        textInput: TextInputEditText,
-        transparentLayer: CardView
-    ) {
-        val materialDialog = MaterialAlertDialogBuilder(this)
-        materialDialog.setCancelable(false)
-        materialDialog.setTitle(dialogTitle)
-
-        materialDialog.setSingleChoiceItems(recyclerViewElements.toTypedArray(), 2) { _, _ -> }
-
-        materialDialog.setNegativeButton("Cancel") { dialog, _ ->
-            dialog.dismiss()
-        }
-
-        materialDialog.setPositiveButton("Save") { dialog, _ ->
-            dialog.dismiss()
-            getSessionSettings()
-            //update text in bottomSheet
-            if (isExercise) {
-                sessionConfigurationText.text = mSessionExercise
-            } else {
-                sessionConfigurationText.text = mSessionMode
-                when (mSessionMode) {
-                    "Endless" -> {
-                        textInputLayout.hint = "Amount"
-                        textInputLayout.isEnabled = false
-                        transparentLayer.isVisible = true
-                        textInput.setText("")
-                    }
-                    "Time" -> {
-                        textInputLayout.hint = "Seconds"
-                        textInputLayout.isEnabled = true
-                        transparentLayer.isVisible = false
-                    }
-                    "Rep" -> {
-                        textInputLayout.hint = "Amount"
-                        textInputLayout.isEnabled = true
-                        transparentLayer.isVisible = false
-                    }
-                }
-            }
-        }
-        materialDialog.show()
     }
 
     private fun getSessionSettings() {
@@ -727,6 +800,11 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
         val listener = object : BottomSheetFragmentSessionListener {
             override fun isDismissed() {
                 mBottomSheetVisible = false
+                //clear the arrays once the session stats have been dismissed
+                mDataSingleton.mRepListSquats = arrayListOf()
+                mDataSingleton.mRepListPushUps = arrayListOf()
+                mDataSingleton.mRepListSitUps = arrayListOf()
+                mCurrentFrameCount = 0
             }
         }
 
@@ -734,7 +812,8 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
             BottomSheetFragmentSession(
                 mPoseClassification.getRepetitionCounter(),
                 (SystemClock.elapsedRealtime() - mWorkoutStartTime),
-                listener
+                listener,
+                supportFragmentManager
             )
         bottomSheet.show(supportFragmentManager, BottomSheetFragmentSession.TAG)
     }

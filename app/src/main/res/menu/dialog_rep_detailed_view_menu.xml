@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+
+        android:id="@+id/dialog_rep_detailed_view_menu_overlay"
+        android:icon="@drawable/baseline_person_24"
+        android:iconTint="@color/customTextColor"
+        android:title="Toggle Overlay"
+        app:showAsAction="always" />
+    <item
+        android:id="@+id/dialog_rep_detailed_view_menu_frameMode"
+        android:contentDescription="Change the current frame mode"
+        android:iconTint="@color/customTextColor"
+        android:title="Toggle between Classification of Frames"
+        android:titleCondensed="All"
+        app:itemTextColor="@color/customTextColor"
+        app:showAsAction="always" />
+</menu>

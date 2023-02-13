@@ -3,7 +3,6 @@ package at.fhooe.mc.mtproject
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
-import android.graphics.Bitmap
 import android.util.Log
 
 class DataSingleton private constructor(context: Context) {
@@ -36,8 +35,13 @@ class DataSingleton private constructor(context: Context) {
     private var mSessionCount = 0
     private var mCameraSelection = 0
     private var mSyncPreviewAndOverlay = true
+    private var mDetailedRepInfo = true
+    private var mMaxFramesRep = 50
+    private var mSaveActiveMovement = false
 
-    var mOverlayBitmapList: ArrayList<Bitmap> = arrayListOf()
+    var mRepListSquats: ArrayList<DetailedRepData> = arrayListOf()
+    var mRepListPushUps: ArrayList<DetailedRepData> = arrayListOf()
+    var mRepListSitUps: ArrayList<DetailedRepData> = arrayListOf()
 
     init {
         mDebugMode = getBoolean(DataConstants.DEBUG_MODE, false)
@@ -50,6 +54,9 @@ class DataSingleton private constructor(context: Context) {
         mSessionCount = getInt(DataConstants.SESSION_COUNT, 0)
         mCameraSelection = getInt(DataConstants.CAMERA_SELECTION, 0)
         mSyncPreviewAndOverlay = getBoolean(DataConstants.SYNC_PREVIEW_AND_OVERLAY, true)
+        mDetailedRepInfo = getBoolean(DataConstants.DETAILED_REP_INFO, true)
+        mMaxFramesRep = getInt(DataConstants.MAX_FRAMES_REP, 50)
+        mSaveActiveMovement = getBoolean(DataConstants.SAVE_ACTIVE_MOVEMENT, false)
         saveState()
     }
 
@@ -64,6 +71,9 @@ class DataSingleton private constructor(context: Context) {
         setInt(DataConstants.SESSION_COUNT, mSessionCount)
         setInt(DataConstants.CAMERA_SELECTION, mCameraSelection)
         setBoolean(DataConstants.SYNC_PREVIEW_AND_OVERLAY, mSyncPreviewAndOverlay)
+        setBoolean(DataConstants.DETAILED_REP_INFO, mDetailedRepInfo)
+        setInt(DataConstants.MAX_FRAMES_REP, mMaxFramesRep)
+        setBoolean(DataConstants.SAVE_ACTIVE_MOVEMENT, mSaveActiveMovement)
     }
 
     fun setSetting(settingName: String, settingValue: Any) {
@@ -96,7 +106,20 @@ class DataSingleton private constructor(context: Context) {
                 mCameraSelection = setInt(DataConstants.CAMERA_SELECTION, settingValue as Int)
             }
             DataConstants.SYNC_PREVIEW_AND_OVERLAY -> {
-                mSyncPreviewAndOverlay = setBoolean(DataConstants.SYNC_PREVIEW_AND_OVERLAY, settingValue as Boolean)
+                mSyncPreviewAndOverlay =
+                    setBoolean(DataConstants.SYNC_PREVIEW_AND_OVERLAY, settingValue as Boolean)
+            }
+            DataConstants.DETAILED_REP_INFO -> {
+                mDetailedRepInfo =
+                    setBoolean(DataConstants.DETAILED_REP_INFO, settingValue as Boolean)
+            }
+            DataConstants.MAX_FRAMES_REP -> {
+                mMaxFramesRep =
+                    setInt(DataConstants.MAX_FRAMES_REP, settingValue as Int)
+            }
+            DataConstants.SAVE_ACTIVE_MOVEMENT -> {
+                mSaveActiveMovement =
+                    setBoolean(DataConstants.SAVE_ACTIVE_MOVEMENT, settingValue as Boolean)
             }
             else -> {
                 Log.e(
@@ -119,6 +142,9 @@ class DataSingleton private constructor(context: Context) {
             DataConstants.SESSION_COUNT -> mSessionCount
             DataConstants.CAMERA_SELECTION -> mCameraSelection
             DataConstants.SYNC_PREVIEW_AND_OVERLAY -> mSyncPreviewAndOverlay
+            DataConstants.DETAILED_REP_INFO -> mDetailedRepInfo
+            DataConstants.MAX_FRAMES_REP -> mMaxFramesRep
+            DataConstants.SAVE_ACTIVE_MOVEMENT -> mSaveActiveMovement
             else -> {
                 Log.e(
                     "invalidSettingName",
@@ -141,7 +167,7 @@ class DataSingleton private constructor(context: Context) {
         return value
     }
 
-    private fun setString(sharedPreference: String, value: String) : String{
+    private fun setString(sharedPreference: String, value: String): String {
         mSharedPreferences.edit()
             .putString(sharedPreference, value).apply()
         return value
@@ -155,7 +181,7 @@ class DataSingleton private constructor(context: Context) {
         return mSharedPreferences.getInt(sharedPreference, defaultValue)
     }
 
-    private fun getString(sharedPreference: String, defaultValue: String): String{
+    private fun getString(sharedPreference: String, defaultValue: String): String {
         return mSharedPreferences.getString(sharedPreference, defaultValue) ?: ""
     }
 }
@@ -174,4 +200,7 @@ object DataConstants {
     val SETTINGS_MODE_LIST = arrayListOf("Endless", "Time", "Rep")
     const val CAMERA_SELECTION = "CAMERA_SELECTION"
     const val SYNC_PREVIEW_AND_OVERLAY = "SYNC_PREVIEW_AND_OVERLAY"
+    const val DETAILED_REP_INFO = "DETAILED_REP_INFO"
+    const val MAX_FRAMES_REP = "MAX_FRAMES_REP"
+    const val SAVE_ACTIVE_MOVEMENT = "SAVE_ACTIVE_MOVEMENT"
 }

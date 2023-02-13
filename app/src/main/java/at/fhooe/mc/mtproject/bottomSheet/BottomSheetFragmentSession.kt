@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.core.view.isVisible
+import androidx.fragment.app.FragmentManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import at.fhooe.mc.mtproject.MainActivity
@@ -21,7 +22,8 @@ import java.util.concurrent.TimeUnit
 class BottomSheetFragmentSession(
     repCounter: ArrayList<RepetitionCounter>,
     workoutTime: Long,
-    private val listener: MainActivity.BottomSheetFragmentSessionListener
+    private val listener: MainActivity.BottomSheetFragmentSessionListener,
+    private val fragmentManager: FragmentManager
 ) :
     BottomSheetDialogFragment() {
     private val mRepCounter: ArrayList<RepetitionCounter>
@@ -85,7 +87,7 @@ class BottomSheetFragmentSession(
             mOverallAvgScore.text = String.format(Locale.US, "%.2f", overallAvgScore)
         }
 
-        mRecyclerView.adapter = SessionAdapter(mRepCounter)
+        mRecyclerView.adapter = SessionAdapter(mRepCounter, fragmentManager)
         mRecyclerView.layoutManager = LinearLayoutManager(view.context)
         mRecyclerView.isNestedScrollingEnabled = true
     }

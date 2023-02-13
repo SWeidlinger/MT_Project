@@ -20,7 +20,10 @@ class DebugOverlayDrawable(
     private val thresholdIFL: Double,
     private val actionBarHeight: Int,
     private val modelUsed: Int,
-    private val syncPreviewAndOverlay: Boolean
+    private val syncPreviewAndOverlay: Boolean,
+    private val detailedRepInfo: Boolean,
+    private val maxFramesRep: Int,
+    private val saveActiveMovement: Boolean
 ) : GraphicOverlay.Graphic(overlay) {
     private var mPaint: Paint = Paint()
     private var mTextPaint: Paint = Paint()
@@ -64,7 +67,7 @@ class DebugOverlayDrawable(
                 confidence = poseClassificationArray[1]
             }
             val classificationY =
-                (canvas?.height!! - 175) - (POSE_CLASSIFICATION_TEXT_SIZE * 1.5f)
+                (canvas?.height!! - 250) - (POSE_CLASSIFICATION_TEXT_SIZE * 1.5f)
             canvas.drawText(
                 confidence,
                 classificationX,
@@ -78,7 +81,7 @@ class DebugOverlayDrawable(
                     canvas.drawText(
                         "${i.className.dropLast(5)}:  ${i.numRepeats}",
                         POSE_CLASSIFICATION_TEXT_SIZE * 0.5f,
-                        (canvas.height - 190) - (POSE_CLASSIFICATION_TEXT_SIZE * 1.5f * (counter++).toFloat()),
+                        (canvas.height - 275) - (POSE_CLASSIFICATION_TEXT_SIZE * 1.5f * (counter++).toFloat()),
                         mClassificationPaint
                     )
                 }
@@ -134,6 +137,23 @@ class DebugOverlayDrawable(
         val model = if (modelUsed == 0) "MLKit Fast" else "MLKit Accurate"
 
         mCanvas.drawText("MODEL: $model", 35f, actionBarHeight + 350f, mTextPaint)
+
+        mCanvas.drawText("REP REPLAY: $detailedRepInfo", 35f, actionBarHeight + 400f, mTextPaint)
+
+        if (detailedRepInfo) {
+            mCanvas.drawText(
+                "MAX FRAMES: $maxFramesRep",
+                70f,
+                actionBarHeight + 450f,
+                mTextPaint
+            )
+            mCanvas.drawText(
+                "ONLY ACTIVE MOV: $saveActiveMovement",
+                70f,
+                actionBarHeight + 500f,
+                mTextPaint
+            )
+        }
     }
 
     private fun checkPoint(point: PoseLandmark): Boolean {

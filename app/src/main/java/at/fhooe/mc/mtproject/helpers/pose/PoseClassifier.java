@@ -140,7 +140,7 @@ public class PoseClassifier {
     // Keeps higher mean distances on top so we can pop it when top_k size is reached.
     PriorityQueue<Pair<PoseSample, Float>> meanDistances = new PriorityQueue<>(
         meanDistanceTopK, (o1, o2) -> -Float.compare(o1.second, o2.second));
-    // Retrive top K poseSamples by least mean distance to remove outliers.
+    // Retrieve top K poseSamples by least mean distance to remove outliers.
     for (Pair<PoseSample, Float> sampleDistances : maxDistances) {
       PoseSample poseSample = sampleDistances.first;
       List<PointF3D> sampleEmbedding = poseSample.getEmbedding();

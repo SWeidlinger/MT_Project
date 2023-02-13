@@ -9,6 +9,7 @@
     android:paddingBottom="10dp">
 
     <com.google.android.material.card.MaterialCardView
+        android:id="@+id/session_exercise_item_nested_cardView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:cardCornerRadius="10dp"
