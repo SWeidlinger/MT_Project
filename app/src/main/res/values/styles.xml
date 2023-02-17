@@ -64,8 +64,12 @@
 
     <style name="MaterialAlertDialog_rounded" parent="@style/ThemeOverlay.MaterialComponents.MaterialAlertDialog">
         <item name="shapeAppearanceOverlay">@style/DialogCorners</item>
-        <item name="materialAlertDialogTitleTextStyle">@style/MyTitle_MaterialAlertDialog.MaterialComponents.Title.Text</item>
-        <item name="materialAlertDialogBodyTextStyle">@style/BodyTextAppearance.MaterialComponents.Body</item>
+        <item name="materialAlertDialogTitleTextStyle">
+            @style/MyTitle_MaterialAlertDialog.MaterialComponents.Title.Text
+        </item>
+        <item name="materialAlertDialogBodyTextStyle">
+            @style/BodyTextAppearance.MaterialComponents.Body
+        </item>
         <item name="alertDialogTheme">@color/customTextColor</item>
     </style>
 
@@ -84,13 +88,18 @@
         <item name="android:textSize">15sp</item>
     </style>
 
-
     <style name="AppTheme.FullScreenDialog" parent="Theme.MaterialComponents.Light.Dialog">
         <item name="colorPrimaryDark">@color/semi_transparent</item>
         <item name="colorAccent">@color/semi_transparent</item>
         <item name="colorPrimary">@color/cardViewBackground</item>
         <item name="android:windowIsFloating">false</item>
         <item name="android:windowBackground">@color/cardViewBackground</item>
+    </style>
+
+    <style name="CustomToolbarTitle" parent="@style/TextAppearance.AppCompat.Widget.ActionBar.Title">
+        <item name="android:textSize">24sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:color">@color/customTextColor</item>
     </style>
 
 </resources>

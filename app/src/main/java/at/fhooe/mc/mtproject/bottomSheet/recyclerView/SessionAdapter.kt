@@ -11,10 +11,7 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.FragmentManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import at.fhooe.mc.mtproject.DataSingleton
-import at.fhooe.mc.mtproject.DetailedRepData
-import at.fhooe.mc.mtproject.PoseClassification
-import at.fhooe.mc.mtproject.R
+import at.fhooe.mc.mtproject.*
 import at.fhooe.mc.mtproject.helpers.pose.RepetitionCounter
 import com.google.android.material.card.MaterialCardView
 import java.util.*
@@ -37,12 +34,12 @@ class SessionAdapter(
     }
 
     override fun onBindViewHolder(holder: SessionViewHolder, position: Int) {
-        val specificRepCount = repCount[position]
-        val exerciseName = getExerciseName(specificRepCount.className)
+        val specificExerciseCount = repCount[position]
+        val exerciseName = getExerciseName(specificExerciseCount.className)
         holder.exerciseNameText.text = exerciseName
-        holder.repCountText.text = specificRepCount.numRepeats.toString()
+        holder.repCountText.text = specificExerciseCount.numRepeats.toString()
 
-        val averageScore = specificRepCount.averageScore
+        val averageScore = specificExerciseCount.averageScore
         if (averageScore < 0) {
             holder.avgScoreText.text = "Avg. score: -"
         } else {
@@ -52,23 +49,24 @@ class SessionAdapter(
                 }"
         }
 
-        if (specificRepCount.score.isEmpty()) {
+        if (specificExerciseCount.categoryDataList.isEmpty()) {
             return
         }
 
-        val detailedRepList: ArrayList<DetailedRepData> = when (specificRepCount.className) {
+        val detailedRepList: ArrayList<DetailedRepData> = when (specificExerciseCount.className) {
             PoseClassification.SQUATS_CLASS -> mDataSingleton.mRepListSquats
             PoseClassification.PUSHUPS_CLASS -> mDataSingleton.mRepListPushUps
             PoseClassification.SITUPS_CLASS -> mDataSingleton.mRepListSitUps
-            else -> mDataSingleton.mRepListSquats
+            else -> arrayListOf()
         }
 
         holder.expandableLayout.isVisible = false
         holder.nestedRecyclerView.adapter = SessionNestedAdapter(
-            specificRepCount.score,
+            specificExerciseCount,
             exerciseName,
             fragmentManager,
-            detailedRepList
+            detailedRepList,
+            mDataSingleton.getSetting(DataConstants.DETAILED_REP_INFO) as Boolean
         )
         holder.nestedRecyclerView.layoutManager =
             LinearLayoutManager(mContext, RecyclerView.HORIZONTAL, false)

@@ -114,6 +114,8 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
     private var mPushUpReps = 0
     private var mSitUpReps = 0
     private var mRepStartTime = 0L
+    private var mRepDurationMovementDownStart = 0L
+    private var mRepDurationMovementDownStop = 0L
 
     private var mMaxFramesRep = 50
     private var mCurrentFrameCount = 0
@@ -353,41 +355,31 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
                         val detailedRep = DetailedRepData(
                             cameraBitmapList = mCameraBitmapList,
                             overlayBitmapList = mOverlayBitmapList,
-                            duration = SystemClock.elapsedRealtime() - mRepStartTime
+                            duration = SystemClock.elapsedRealtime() - mRepStartTime,
+                            durationMovementDown = mRepDurationMovementDownStop - mRepDurationMovementDownStart
                         )
 
                         repCounter.forEach {
                             when (it.className) {
                                 PoseClassification.SQUATS_CLASS -> {
                                     if (mSquatReps < it.numRepeats) {
-                                        Log.e("DEBUG", "INSIDE SAVING TO SINGLETON")
-
                                         mDataSingleton.mRepListSquats.add(detailedRep)
                                         mSquatReps = it.numRepeats
-                                        mCameraBitmapList = arrayListOf()
-                                        mOverlayBitmapList = arrayListOf()
-                                        mRepStartTime = 0L
-                                        mCurrentFrameCount = 0
+                                        resetRepDetailedData()
                                     }
                                 }
                                 PoseClassification.PUSHUPS_CLASS -> {
                                     if (mPushUpReps < it.numRepeats) {
                                         mDataSingleton.mRepListPushUps.add(detailedRep)
                                         mPushUpReps = it.numRepeats
-                                        mCameraBitmapList = arrayListOf()
-                                        mOverlayBitmapList = arrayListOf()
-                                        mRepStartTime = 0L
-                                        mCurrentFrameCount = 0
+                                        resetRepDetailedData()
                                     }
                                 }
                                 PoseClassification.SITUPS_CLASS -> {
                                     if (mSitUpReps < it.numRepeats) {
                                         mDataSingleton.mRepListSitUps.add(detailedRep)
                                         mSitUpReps = it.numRepeats
-                                        mCameraBitmapList = arrayListOf()
-                                        mOverlayBitmapList = arrayListOf()
-                                        mRepStartTime = 0L
-                                        mCurrentFrameCount = 0
+                                        resetRepDetailedData()
                                     }
                                 }
                             }
@@ -425,7 +417,21 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
                     mGraphicOverlay.add(CameraImageGraphic(mGraphicOverlay, cameraPreviewBitmap))
 
                     if (mSessionActive && !poseClassification.isNullOrEmpty() && poseClassification.size > 2) {
+                        //start the timer for the repetition
+                        if (mRepStartTime == 0L) {
+                            mRepStartTime = SystemClock.elapsedRealtime()
+                        }
                         val exerciseClass = poseClassification[2]
+
+                        //set the repActiveMovementTimer only when the image is classified in down
+                        //stop once the exercise is categorized as up again
+                        if (exerciseClass.contains("down", ignoreCase = true)) {
+                            if (mRepDurationMovementDownStart == 0L) {
+                                mRepDurationMovementDownStart = SystemClock.elapsedRealtime()
+                            } else {
+                                mRepDurationMovementDownStop = SystemClock.elapsedRealtime()
+                            }
+                        }
 
                         val exerciseBitmap =
                             ExerciseBitmap(exerciseClass, mGraphicOverlay.drawToBitmap())
@@ -441,7 +447,7 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
                                     if (exerciseClass == "squats_down" || exerciseClass == "pushups_down" || exerciseClass == "situps_up") {
                                         mCameraBitmapList[mCurrentFrameCount] = exerciseBitmap
                                     }
-                                }else{
+                                } else {
                                     mCameraBitmapList[mCurrentFrameCount] = exerciseBitmap
                                 }
                             } else {
@@ -450,7 +456,7 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
                                         mCameraBitmapList.add(exerciseBitmap)
 
                                     }
-                                }else{
+                                } else {
                                     mCameraBitmapList.add(exerciseBitmap)
                                 }
                             }
@@ -467,11 +473,6 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
 
                     //only save the bitmap if a session is running and a pose is detected
                     if (mSessionActive && !poseClassification.isNullOrEmpty() && poseClassification.size > 2) {
-                        //start the timer for the repetition
-                        if (mRepStartTime == 0L) {
-                            mRepStartTime = SystemClock.elapsedRealtime()
-                        }
-
                         val exerciseClass = poseClassification[2]
                         if (mDetailedRepInfo) {
                             val exerciseBitmap = ExerciseBitmap(
@@ -535,6 +536,15 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
         }
     }
 
+    private fun resetRepDetailedData() {
+        mCameraBitmapList = arrayListOf()
+        mOverlayBitmapList = arrayListOf()
+        mRepStartTime = 0L
+        mCurrentFrameCount = 0
+        mRepDurationMovementDownStop = 0L
+        mRepDurationMovementDownStart = 0L
+    }
+
     private fun switchCameraInput() {
         mGraphicOverlay.clear()
         if (mCameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) {
@@ -576,7 +586,7 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
             binding.activityMainCardViewRight.isClickable = true
 
             //cancel sessionTimer if pause button pressed before timer finishes
-            if (mSessionMode == "Time") {
+            if (mSessionMode == "Time" && this::mSessionTimeCountdown.isInitialized) {
                 mSessionTimeCountdown.cancel()
             }
 
@@ -724,11 +734,12 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
         transparentLayer: CardView
     ) {
         val dialog = BottomSheetDialog(this)
-        val dialogBinding = BottomSheetSessionSettingsSelectionBinding.inflate(dialog.layoutInflater)
+        val dialogBinding =
+            BottomSheetSessionSettingsSelectionBinding.inflate(dialog.layoutInflater)
         dialog.setContentView(dialogBinding.root)
 
-        val title = dialogBinding.customDialogSessionSettingsTitle
-        title.text = dialogTitle
+        val toolbar = dialogBinding.customDialogSessionSettingsToolbar
+        toolbar.title = dialogTitle
 
         val recyclerViewExercise = dialogBinding.customDialogSessionSettingsRecyclerviewExercise
         recyclerViewExercise.adapter = SessionSettingsAdapter(

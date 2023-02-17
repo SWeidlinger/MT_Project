@@ -26,7 +26,7 @@ import at.fhooe.mc.mtproject.helpers.CameraImageGraphic
 import at.fhooe.mc.mtproject.helpers.GraphicOverlay
 import com.google.android.material.button.MaterialButton
 
-class RepDetailedViewDialog(
+class RepReplayDialog(
     private val dialogTitle: String,
     private val detailedRepData: DetailedRepData,
     private val context: Context
@@ -47,7 +47,6 @@ class RepDetailedViewDialog(
     private var currentBitmapList = detailedRepData.overlayBitmapList
     private var currentFrameMode = "ALL"
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setStyle(STYLE_NORMAL, R.style.AppTheme_FullScreenDialog)
@@ -60,7 +59,7 @@ class RepDetailedViewDialog(
         savedInstanceState: Bundle?
     ): View? {
         super.onCreateView(inflater, container, savedInstanceState)
-        val view = inflater.inflate(R.layout.dialog_rep_detailed_view, container, false)
+        val view = inflater.inflate(R.layout.dialog_rep_replay, container, false)
 
         toolbar = view.findViewById(R.id.dialog_rep_detailed_view_toolbar)
         graphicOverlay = view.findViewById(R.id.dialog_rep_detailed_view_graphic_overlay)

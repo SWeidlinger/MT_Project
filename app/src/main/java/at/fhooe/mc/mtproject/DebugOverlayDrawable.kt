@@ -123,7 +123,9 @@ class DebugOverlayDrawable(
             mTextPaint
         )
 
-        mCanvas.drawText("FPS: ${1000 / fps}", 35f, actionBarHeight + 200f, mTextPaint)
+        if (fps > 0) {
+            mCanvas.drawText("FPS: ${1000 / fps}", 35f, actionBarHeight + 200f, mTextPaint)
+        }
 
         mCanvas.drawText("SYNC: $syncPreviewAndOverlay", 35f, actionBarHeight + 250f, mTextPaint)
 

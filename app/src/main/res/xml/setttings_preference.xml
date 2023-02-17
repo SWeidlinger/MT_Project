@@ -26,7 +26,7 @@
         app:iconSpaceReserved="false"
         android:title="@string/preference_category_camera">
 
-        <at.fhooe.mc.mtproject.preferenceDialog.CustomPreferenceList
+        <at.fhooe.mc.mtproject.preferenceScreen.CustomPreferenceList
             app:useSimpleSummaryProvider="true"
             app:iconSpaceReserved="false"
             android:defaultValue="1"
@@ -46,7 +46,7 @@
         app:iconSpaceReserved="false"
         android:title="@string/preference_category_model">
 
-        <at.fhooe.mc.mtproject.preferenceDialog.CustomPreferenceList
+        <at.fhooe.mc.mtproject.preferenceScreen.CustomPreferenceList
             app:useSimpleSummaryProvider="true"
             app:iconSpaceReserved="false"
             android:defaultValue="0"

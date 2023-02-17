@@ -181,9 +181,9 @@ class PoseDetectionDrawable(
         drawLine(canvas, rightKnee, rightAnkle, mRightPaint)
 
         // Feet
-//        drawLine(canvas, leftAnkle, leftHeel, mFootPaint)
+//        drawLine(canvas, leftAnkle, leftHeel, mLeftPaint)
 //        drawLine(canvas, leftHeel, leftFootIndex, mFootPaint)
-//        drawLine(canvas, rightAnkle, rightHeel, mFootPaint)
+//        drawLine(canvas, rightAnkle, rightHeel, mRightPaint)
 //        drawLine(canvas, rightHeel, rightFootIndex, mFootPaint)
     }
 

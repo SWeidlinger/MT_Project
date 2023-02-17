@@ -16,14 +16,16 @@
 
 package at.fhooe.mc.mtproject.helpers.pose;
 
-import android.util.Log;
 
 import com.google.mlkit.vision.pose.Pose;
-import com.google.mlkit.vision.pose.PoseLandmark;
 
 import java.util.ArrayList;
 
 import at.fhooe.mc.mtproject.PoseClassification;
+import at.fhooe.mc.mtproject.PushUpRatingAlgorithms;
+import at.fhooe.mc.mtproject.SquatRatingAlgorithms;
+import at.fhooe.mc.mtproject.bottomSheet.recyclerView.CategoryConstants;
+import at.fhooe.mc.mtproject.bottomSheet.recyclerView.DetailedRepCategoryData;
 
 /**
  * Counts reps for the give class.
@@ -41,12 +43,24 @@ public class RepetitionCounter {
     private int numRepeats;
     private boolean poseEntered;
 
-    private ArrayList<Double> score;
-    private ArrayList<Double> angleValues = new ArrayList<>();
+    private ArrayList<Double> angleValuesHip = new ArrayList<>();
     private ArrayList<Double> angleValuesElbow = new ArrayList<>();
+    private Double maxSquatDepth = 0.0;
+    private ArrayList<Double> maxSquatDepthList = new ArrayList<>();
+    private ArrayList<Double> stanceWidthList = new ArrayList<>();
+    private ArrayList<Double> torsoLengthList = new ArrayList<>();
+
+    private ArrayList<ArrayList<DetailedRepCategoryData>> categoryDataList;
 
     public RepetitionCounter(String className) {
         this(className, DEFAULT_ENTER_THRESHOLD, DEFAULT_EXIT_THRESHOLD);
+        numRepeats = 0;
+        poseEntered = false;
+        categoryDataList = new ArrayList<>();
+        maxSquatDepth = 0.0;
+        stanceWidthList = new ArrayList<>();
+        maxSquatDepthList = new ArrayList<>();
+        torsoLengthList = new ArrayList<>();
     }
 
     public RepetitionCounter(String className, float enterThreshold, float exitThreshold) {
@@ -55,7 +69,11 @@ public class RepetitionCounter {
         this.exitThreshold = exitThreshold;
         numRepeats = 0;
         poseEntered = false;
-        score = new ArrayList<Double>();
+        categoryDataList = new ArrayList<>();
+        maxSquatDepth = 0.0;
+        stanceWidthList = new ArrayList<>();
+        maxSquatDepthList = new ArrayList<>();
+        torsoLengthList = new ArrayList<>();
     }
 
     /**
@@ -72,10 +90,10 @@ public class RepetitionCounter {
             return numRepeats;
         }
 
-        calculateAngle(pose);
+        getRating(pose);
 
         if (poseConfidence < exitThreshold) {
-            checkAngleValues();
+            calculateCategoryData();
             numRepeats++;
             poseEntered = false;
         }
@@ -83,56 +101,21 @@ public class RepetitionCounter {
         return numRepeats;
     }
 
-    private void calculateAngle(Pose pose) {
+    private void getRating(Pose pose) {
         if (pose.getAllPoseLandmarks().isEmpty()) {
             return;
         }
 
         switch (className) {
-            case PoseClassification.PUSHUPS_CLASS: {
-                PoseLandmark lShoulder = pose.getPoseLandmark(PoseLandmark.LEFT_SHOULDER);
-                PoseLandmark lHip = pose.getPoseLandmark(PoseLandmark.LEFT_HIP);
-                PoseLandmark lAnkle = pose.getPoseLandmark(PoseLandmark.LEFT_ANKLE);
-
-                PoseLandmark rShoulder = pose.getPoseLandmark(PoseLandmark.RIGHT_SHOULDER);
-                PoseLandmark rHip = pose.getPoseLandmark(PoseLandmark.RIGHT_HIP);
-                PoseLandmark rAnkle = pose.getPoseLandmark(PoseLandmark.RIGHT_ANKLE);
-
-                PoseLandmark lWrist = pose.getPoseLandmark(PoseLandmark.LEFT_WRIST);
-                PoseLandmark rWrist = pose.getPoseLandmark(PoseLandmark.RIGHT_WRIST);
-                PoseLandmark lElbow = pose.getPoseLandmark(PoseLandmark.LEFT_ELBOW);
-                PoseLandmark rElbow = pose.getPoseLandmark(PoseLandmark.RIGHT_ELBOW);
-
-                double lHipAngle = PoseClassification.Companion.getAngle(lShoulder, lHip, lAnkle);
-                double rHipAngle = PoseClassification.Companion.getAngle(rShoulder, rHip, rAnkle);
-
-                double lElbowAngle = PoseClassification.Companion.getAngle(lShoulder, lElbow, lWrist);
-                double rElbowAngle = PoseClassification.Companion.getAngle(rShoulder, rElbow, rWrist);
-
-                angleValues.add(lHipAngle);
-                angleValues.add(rHipAngle);
-
-                angleValuesElbow.add(rElbowAngle);
-                angleValuesElbow.add(lElbowAngle);
+            case PoseClassification.SQUATS_CLASS: {
+                maxSquatDepth = SquatRatingAlgorithms.Companion.getSquatDepthAngle(pose, maxSquatDepth);
+                stanceWidthList.add(SquatRatingAlgorithms.Companion.getStanceWidth(pose));
+                torsoLengthList.add(SquatRatingAlgorithms.Companion.getTorsoAlignment(pose));
             }
             break;
-            case PoseClassification.SQUATS_CLASS: {
-                PoseLandmark lHip = pose.getPoseLandmark(PoseLandmark.LEFT_HIP);
-                PoseLandmark lKnee = pose.getPoseLandmark(PoseLandmark.LEFT_KNEE);
-                PoseLandmark lAnkle = pose.getPoseLandmark(PoseLandmark.LEFT_ANKLE);
-
-                PoseLandmark rHip = pose.getPoseLandmark(PoseLandmark.RIGHT_HIP);
-                PoseLandmark rKnee = pose.getPoseLandmark(PoseLandmark.RIGHT_KNEE);
-                PoseLandmark rAnkle = pose.getPoseLandmark(PoseLandmark.RIGHT_ANKLE);
-
-                double lKneeAngle = PoseClassification.Companion.getAngle(lHip, lKnee, lAnkle);
-                double rKneeAngle = PoseClassification.Companion.getAngle(rHip, rKnee, rAnkle);
-
-                angleValues.add(lKneeAngle);
-                angleValues.add(rKneeAngle);
-
-//                Log.e("LEFT KNEE: ", Double.toString(lKneeAngle));
-//                Log.e("RIGHT KNEE: ", Double.toString(rKneeAngle));
+            case PoseClassification.PUSHUPS_CLASS: {
+                angleValuesElbow.add(PushUpRatingAlgorithms.Companion.getElbowAngle(pose));
+                angleValuesHip.add(PushUpRatingAlgorithms.Companion.getHipAngle(pose));
             }
             break;
             case PoseClassification.SITUPS_CLASS: {
@@ -142,24 +125,45 @@ public class RepetitionCounter {
         }
     }
 
-    private void checkAngleValues() {
+    private void calculateCategoryData() {
         switch (className) {
             case PoseClassification.SQUATS_CLASS: {
-                score.add(calculateScore(100, angleValues));
-                angleValues.clear();
+                String squatDepthScore = SquatRatingAlgorithms.Companion.calculateSquatDepthScore(maxSquatDepth);
+                String stanceWidthScore = SquatRatingAlgorithms.Companion.getStanceWidthScore(stanceWidthList);
+                String torsoAlignmentScore = SquatRatingAlgorithms.Companion.getTorsoAlignmentScore(torsoLengthList);
+
+                ArrayList<DetailedRepCategoryData> categoryDataExercise = new ArrayList<>();
+                categoryDataExercise.add(new DetailedRepCategoryData(CategoryConstants.STANCE_WIDTH, stanceWidthScore, className));
+                categoryDataExercise.add(new DetailedRepCategoryData(CategoryConstants.TORSO_ALIGNMENT, torsoAlignmentScore, className));
+                categoryDataExercise.add(new DetailedRepCategoryData(CategoryConstants.SQUAT_DEPTH, squatDepthScore, className));
+
+                categoryDataList.add(categoryDataExercise);
+                maxSquatDepthList.add(maxSquatDepth);
+                resetCategoryData();
             }
             break;
             case PoseClassification.PUSHUPS_CLASS: {
-                score.add((calculateScore(175, angleValues) + calculateScore(90, angleValuesElbow)) / 2);
-                angleValues.clear();
+                String bodyAlignmentScore = PushUpRatingAlgorithms.Companion.calculateBodyAlignmentScore(angleValuesElbow,angleValuesHip);
+                ArrayList<DetailedRepCategoryData> categoryDataExercise = new ArrayList<>();
+                categoryDataExercise.add(new DetailedRepCategoryData(CategoryConstants.BODY_ALIGNMENT, bodyAlignmentScore, className));
+
+                categoryDataList.add(categoryDataExercise);
+                angleValuesHip.clear();
                 angleValuesElbow.clear();
             }
             break;
             case PoseClassification.SITUPS_CLASS: {
-                score.add(-1.0);
+                categoryDataList.add(new ArrayList<>());
             }
             break;
         }
+    }
+
+    //reset the data related for the rating
+    private void resetCategoryData() {
+        maxSquatDepth = 0.0;
+        stanceWidthList.clear();
+        torsoLengthList.clear();
     }
 
     public String getClassName() {
@@ -170,33 +174,51 @@ public class RepetitionCounter {
         return numRepeats;
     }
 
-    public ArrayList<Double> getScore() {
-        return score;
+    private ArrayList<Double> getScore() {
+        ArrayList<Double> scoreList = new ArrayList<>();
+        for (ArrayList<DetailedRepCategoryData> exercise : categoryDataList) {
+            for (DetailedRepCategoryData category : exercise) {
+                scoreList.add(Double.parseDouble(category.getScore()));
+            }
+        }
+
+        return scoreList;
+    }
+
+    public double getScore(int index) {
+        double avg = 0;
+        ArrayList<DetailedRepCategoryData> categoryList = categoryDataList.get(index);
+        for (DetailedRepCategoryData category : categoryList) {
+            avg += Double.parseDouble(category.getScore());
+        }
+
+        if (categoryList.size() <= 0) {
+            return -1.0;
+        } else {
+            return avg / categoryList.size();
+        }
     }
 
     public double getAverageScore() {
-        if (score.isEmpty()) {
+        ArrayList<Double> scoreList = getScore();
+
+        if (scoreList.isEmpty()) {
             return -1;
         }
+
         double avg = 0;
-        int positionsSkipped = 0;
-        for (double i : score) {
-            if (i < 0) {
-                positionsSkipped++;
-            }
-            avg += i;
+        for (double score : scoreList) {
+            avg += score;
         }
 
-        double result = avg / (score.size() - positionsSkipped);
-        return Double.isNaN(result) ? -1 : result;
+        return avg / scoreList.size();
     }
 
-    private double calculateScore(Integer thresholdAngle, ArrayList<Double> values) {
-        if (values.isEmpty()) {
-            return 0;
-        }
-        double avg = values.stream().mapToDouble(a -> a).average().getAsDouble();
+    public ArrayList<Double> getMaxSquatDepthList() {
+        return maxSquatDepthList;
+    }
 
-        return Math.min(1.0, (thresholdAngle / avg)) * 10;
+    public ArrayList<ArrayList<DetailedRepCategoryData>> getCategoryDataList() {
+        return categoryDataList;
     }
 }

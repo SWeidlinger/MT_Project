@@ -5,7 +5,10 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.FragmentManager
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -14,6 +17,7 @@ import at.fhooe.mc.mtproject.MainActivity
 import at.fhooe.mc.mtproject.R
 import at.fhooe.mc.mtproject.bottomSheet.recyclerView.SessionAdapter
 import at.fhooe.mc.mtproject.helpers.pose.RepetitionCounter
+import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import java.text.NumberFormat
 import java.util.*
@@ -32,6 +36,7 @@ class BottomSheetFragmentSession(
     private lateinit var mOverallAvgScore: TextView
     private lateinit var mWorkoutTimeText: TextView
     private lateinit var mNoWorkoutsDetectedText: TextView
+    private lateinit var mToolbar: MaterialToolbar
 
     init {
         mRepCounter = repCounter
@@ -59,6 +64,13 @@ class BottomSheetFragmentSession(
                     TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(mWorkoutTime))
         )
         mNoWorkoutsDetectedText = view.findViewById(R.id.frag_bottom_sheet_noWorkoutsDetected)
+
+        mToolbar = view.findViewById(R.id.frag_bottom_sheet_toolbar)
+        mToolbar.setNavigationOnClickListener {
+            dialog?.dismiss()
+        }
+
+        dialog?.setCancelable(false)
 
         if (mRepCounter.isEmpty()) {
             mNoWorkoutsDetectedText.isVisible = true
