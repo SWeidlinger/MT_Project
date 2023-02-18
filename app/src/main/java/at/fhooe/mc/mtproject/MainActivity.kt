@@ -97,6 +97,7 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
     private lateinit var mMediaPlayerCountdownStart: MediaPlayer
     private lateinit var mMediaPlayerSessionFinished: MediaPlayer
     private lateinit var mMediaPlayerSessionStart: MediaPlayer
+    private lateinit var mMediaPlayerRepCount: MediaPlayer
 
     private lateinit var mDataSingleton: DataSingleton
 
@@ -120,6 +121,8 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
     private var mMaxFramesRep = 50
     private var mCurrentFrameCount = 0
     private var mSaveActiveMovement = false
+
+    private var mPrevRepCount = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -149,6 +152,7 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
         mMediaPlayerCountdownStart = MediaPlayer.create(this, R.raw.countdown_beep)
         mMediaPlayerSessionStart = MediaPlayer.create(this, R.raw.session_start)
         mMediaPlayerSessionFinished = MediaPlayer.create(this, R.raw.session_finished)
+        mMediaPlayerRepCount = MediaPlayer.create(this, R.raw.rep_count)
 
         if (mSpinnerModelID == 0) {
             initPoseDetectionFast()
@@ -156,7 +160,12 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
             initPoseDetectionAccurate()
         }
 
-        mPoseClassification = PoseClassification(this, mDataSingleton)
+        mPoseClassification = PoseClassification(
+            this,
+            mDataSingleton,
+            mMediaPlayerCountdownStart,
+            mMediaPlayerRepCount
+        )
 
         //request camera permissions
         if (!allPermissionsGranted()) {
@@ -271,6 +280,8 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
 
         mCameraSettingSelection =
             mDataSingleton.getSetting(DataConstants.CAMERA_SELECTION) as Int
+
+        bindCameraLifecycles()
     }
 
     //sets up the double tap to switch cameras
@@ -387,17 +398,18 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
                     }
 
                     //add to cardView when rep mode activated
-                    if (mSessionMode == "Rep") {
-                        val currentRepCount = repCounter?.get(0)?.numRepeats
-                        if (currentRepCount != null) {
-                            val repsLeft = mSessionCount - currentRepCount
-                            if (repsLeft == 0) {
-                                performSessionAction()
-                                binding.activityMainTextviewSessionCount.text =
-                                    mSessionCount.toString()
-                            } else {
-                                binding.activityMainTextviewSessionCount.text = repsLeft.toString()
-                            }
+                    if (mSessionMode == "Rep" && repCounter != null) {
+                        var currentRepCount = 0
+                        for (individualExercise in repCounter) {
+                            currentRepCount += individualExercise.numRepeats
+                        }
+                        val repsLeft = mSessionCount - currentRepCount
+                        if (repsLeft == 0) {
+                            performSessionAction()
+                            binding.activityMainTextviewSessionCount.text =
+                                mSessionCount.toString()
+                        } else {
+                            binding.activityMainTextviewSessionCount.text = repsLeft.toString()
                         }
                     }
 
@@ -568,15 +580,24 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
                 .build()
 
             mPreview.setSurfaceProvider(binding.activityMainPreviewView.surfaceProvider)
-            try {
-                // Unbind use cases before rebinding
-                mCameraProvider.unbindAll()
-                // Bind use cases to camera
-                mCameraProvider.bindToLifecycle(this, mCameraSelector, mPreview, mImageAnalyzer)
-            } catch (exc: Exception) {
-                Log.e(TAG, "Use case binding failed", exc)
-            }
+
+            bindCameraLifecycles()
         }, ContextCompat.getMainExecutor(this))
+    }
+
+    private fun bindCameraLifecycles() {
+        try {
+            // Unbind use cases before rebinding
+            mCameraProvider.unbindAll()
+            // Bind use cases to camera
+            if (mSyncPreviewAndOverlay) {
+                mCameraProvider.bindToLifecycle(this, mCameraSelector, mImageAnalyzer)
+            } else {
+                mCameraProvider.bindToLifecycle(this, mCameraSelector, mPreview, mImageAnalyzer)
+            }
+        } catch (exc: Exception) {
+            Log.e(TAG, "Use case binding failed", exc)
+        }
     }
 
     private fun performSessionAction() {
@@ -631,6 +652,11 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
                                     override fun onTick(millisUntilFinished: Long) {
                                         binding.activityMainTextviewSessionCount.text =
                                             "${(millisUntilFinished / 1000) + 1}"
+
+                                        //play sound for last 3 seconds
+                                        if ((millisUntilFinished / 1000) + 1 in 1..2) {
+                                            mMediaPlayerCountdownStart.start()
+                                        }
                                     }
 
                                     override fun onFinish() {

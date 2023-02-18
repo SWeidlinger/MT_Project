@@ -79,7 +79,7 @@ class SessionNestedAdapter(
 
         val replay = toolbar.menu.getItem(0)
         replay.isEnabled = repReplayActive
-        if (!repReplayActive) {
+        if (!repReplayActive || detailedRepList.size <= 0) {
             val strikeThrough = SpannableString(replay.title)
             strikeThrough.setSpan(
                 StrikethroughSpan(),
@@ -88,23 +88,12 @@ class SessionNestedAdapter(
                 Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
             )
             replay.title = strikeThrough
+            replay.isEnabled = false
         }
 
         replay.setOnMenuItemClickListener {
-            if (detailedRepList.size > 0) {
-                showRepReplayDialog(repNumber, detailedRepList[index])
-                true
-            } else {
-                val strikeThrough = SpannableString(replay.title)
-                strikeThrough.setSpan(
-                    StrikethroughSpan(),
-                    0,
-                    replay.title!!.length,
-                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-                )
-                replay.title = strikeThrough
-                false
-            }
+            showRepReplayDialog(repNumber, detailedRepList[index])
+            true
         }
 
         val additionalInfoList = arrayListOf<DetailedRepInfoData>()

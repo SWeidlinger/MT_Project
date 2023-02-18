@@ -6,16 +6,6 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <at.fhooe.mc.mtproject.helpers.GraphicOverlay
-        android:id="@+id/activity_main_graphic_overlay_save_bitmap"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="invisible"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
     <androidx.camera.view.PreviewView
         android:id="@+id/activity_main_preview_view"
         android:layout_width="match_parent"

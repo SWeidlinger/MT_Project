@@ -11,7 +11,12 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.util.*
 
-class PoseClassification(context: Context, dataSingleton: DataSingleton) {
+class PoseClassification(
+    context: Context,
+    dataSingleton: DataSingleton,
+    private val mFinalRepsSound: MediaPlayer,
+    private val mRepCountSound: MediaPlayer
+) {
     private lateinit var mPoseClassifier: PoseClassifier
 
     private val mRepCounter = ArrayList<RepetitionCounter>()
@@ -21,9 +26,10 @@ class PoseClassification(context: Context, dataSingleton: DataSingleton) {
     private val mPoseSampleArray = ArrayList<PoseSample>()
     private val mContext: Context
 
-    private lateinit var mRepCountSound: MediaPlayer
+    private val mDataSingleton = dataSingleton
 
-    private val mSettingSingleton = dataSingleton
+    private var mSessionMode = "Endless"
+    private var mSessionCount = 0
 
     init {
         mContext = context
@@ -32,7 +38,6 @@ class PoseClassification(context: Context, dataSingleton: DataSingleton) {
 
     private fun loadPoseSamples(context: Context) {
         if (mPoseSampleArray.isEmpty()) {
-            mRepCountSound = MediaPlayer.create(mContext, R.raw.rep_count)
             val file = BufferedReader(InputStreamReader(context.assets.open(POSE_SAMPLES_FILE)))
             file.forEachLine {
                 it.let {
@@ -47,12 +52,15 @@ class PoseClassification(context: Context, dataSingleton: DataSingleton) {
 
         val chosenExercise: ArrayList<String> = arrayListOf()
 
-        when (mSettingSingleton.getSetting(DataConstants.EXERCISE_STRING)) {
+        when (mDataSingleton.getSetting(DataConstants.EXERCISE_STRING)) {
             "All" -> chosenExercise.addAll(POSE_CLASSES)
             "Squat" -> chosenExercise.add(SQUATS_CLASS)
             "Push-Up" -> chosenExercise.add(PUSHUPS_CLASS)
             "Sit-Up" -> chosenExercise.add(SITUPS_CLASS)
         }
+
+        mSessionMode = mDataSingleton.getSetting(DataConstants.MODE_STRING) as String
+        mSessionCount = mDataSingleton.getSetting(DataConstants.SESSION_COUNT) as Int
 
         for (i in chosenExercise) {
             mRepCounter.add(RepetitionCounter(i))
@@ -74,7 +82,15 @@ class PoseClassification(context: Context, dataSingleton: DataSingleton) {
             val repsBefore = repCount.numRepeats
             val repsAfter = repCount.addClassificationResult(classification, pose)
             if (repsAfter > repsBefore) {
-                mRepCountSound.start()
+                //play sound for last 3 reps
+                if (mSessionMode == "Rep" && ((mSessionCount - repsAfter) in 1..2)) {
+                    mFinalRepsSound.start()
+                } else {
+                    if (mSessionMode == "Rep" && mSessionCount - repsAfter == 0) {
+                    } else {
+                        mRepCountSound.start()
+                    }
+                }
                 mLastRepResult = String.format(
                     Locale.US,
                     "%s : %d reps",
