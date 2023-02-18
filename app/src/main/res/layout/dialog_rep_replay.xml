@@ -1,17 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent">
-
-        <androidx.constraintlayout.widget.Group
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
 
         <com.google.android.material.appbar.AppBarLayout
             android:id="@+id/appBarLayout"
@@ -38,108 +33,14 @@
             android:id="@+id/dialog_rep_detailed_view_graphic_overlay"
             android:layout_width="0dp"
             android:layout_height="0dp"
-            app:layout_constraintBottom_toTopOf="@+id/constraintLayout"
+            android:layout_marginBottom="100dp"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/appBarLayout" />
 
-        <TextView
-            android:id="@+id/dialog_rep_detailed_view_bitmap_list_size_text"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="TextView"
-            android:textSize="18sp"
-            app:layout_constraintBottom_toBottomOf="@+id/dialog_rep_detailed_view_graphic_overlay"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent" />
-
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/constraintLayout"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            app:layout_constraintBottom_toTopOf="@+id/guideline2"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/dialog_rep_detailed_view_graphic_overlay">
-
-            <Button
-                android:id="@+id/dialog_rep_detailed_view_button_forward"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:backgroundTint="@color/start_blue"
-                android:textSize="18sp"
-                app:icon="@drawable/baseline_arrow_forward_ios_24"
-                app:iconGravity="textStart"
-                app:iconPadding="0dp"
-                app:layout_constraintBottom_toBottomOf="@+id/dialog_rep_detailed_view_button_backward"
-                app:layout_constraintStart_toEndOf="@+id/dialog_rep_detailed_view_button_play"
-                app:layout_constraintTop_toTopOf="@+id/dialog_rep_detailed_view_button_backward" />
-
-            <Button
-                android:id="@+id/dialog_rep_detailed_view_button_backward"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="16dp"
-                android:backgroundTint="@color/start_blue"
-                android:textSize="18sp"
-                app:icon="@drawable/baseline_arrow_back_ios_new_24"
-                app:iconGravity="textStart"
-                app:iconPadding="0dp"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toStartOf="@+id/dialog_rep_detailed_view_button_play"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/dialog_rep_detailed_view_button_play"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:backgroundTint="#818181"
-                android:textSize="18sp"
-                app:elevation="0dp"
-                app:icon="@drawable/baseline_stop_24"
-                app:iconGravity="textStart"
-                app:iconPadding="0dp"
-                app:layout_constraintBottom_toBottomOf="@+id/dialog_rep_detailed_view_button_backward"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="@+id/dialog_rep_detailed_view_button_backward" />
-
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
-        <androidx.constraintlayout.widget.Guideline
-            android:id="@+id/guideline2"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            app:layout_constraintGuide_percent="0.93" />
-
-        <SeekBar
-            android:id="@+id/dialog_rep_detailed_view_slider"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:max="1000"
-            android:min="10"
-            android:progress="100"
-            android:progressTint="@color/customTextColor"
-            android:thumbTint="@color/start_blue"
-            app:layout_constraintEnd_toEndOf="@+id/constraintLayout"
-            app:layout_constraintStart_toStartOf="@+id/constraintLayout"
-            app:layout_constraintTop_toBottomOf="@+id/constraintLayout" />
-
-        <TextView
-            android:id="@+id/dialog_rep_detailed_view_delay"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:text="TextView"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="@+id/dialog_rep_detailed_view_slider"
-            app:layout_constraintStart_toStartOf="@+id/dialog_rep_detailed_view_slider"
-            app:layout_constraintTop_toBottomOf="@+id/dialog_rep_detailed_view_slider" />
-
     </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <include layout="@layout/bottom_sheet_persistent_replay_player" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

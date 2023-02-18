@@ -10,11 +10,8 @@ import android.os.Looper
 import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
 import android.view.*
-import android.widget.Button
-import android.widget.SeekBar
+import android.widget.*
 import android.widget.SeekBar.OnSeekBarChangeListener
-import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
 import androidx.core.view.doOnLayout
@@ -24,7 +21,8 @@ import at.fhooe.mc.mtproject.ExerciseBitmap
 import at.fhooe.mc.mtproject.R
 import at.fhooe.mc.mtproject.helpers.CameraImageGraphic
 import at.fhooe.mc.mtproject.helpers.GraphicOverlay
-import com.google.android.material.button.MaterialButton
+import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.android.material.card.MaterialCardView
 
 class RepReplayDialog(
     private val dialogTitle: String,
@@ -35,12 +33,15 @@ class RepReplayDialog(
     private lateinit var graphicOverlay: GraphicOverlay
     private var isPlaying = true
     private lateinit var text: TextView
-    private lateinit var backward: Button
-    private lateinit var forward: Button
-    private lateinit var play: MaterialButton
+    private lateinit var backward: MaterialCardView
+    private lateinit var forward: MaterialCardView
+    private lateinit var play: MaterialCardView
+    private lateinit var playIcon: ImageView
     private lateinit var slider: SeekBar
     private lateinit var delayText: TextView
     private var isOverlayOn = true
+    private lateinit var bottomSheetBehavior: BottomSheetBehavior<LinearLayout>
+    private lateinit var dragHandle: ImageView
 
     private var currentFramePosition = 0
     private var delay = 100L
@@ -63,14 +64,20 @@ class RepReplayDialog(
 
         toolbar = view.findViewById(R.id.dialog_rep_detailed_view_toolbar)
         graphicOverlay = view.findViewById(R.id.dialog_rep_detailed_view_graphic_overlay)
-        text = view.findViewById(R.id.dialog_rep_detailed_view_bitmap_list_size_text)
-        delayText = view.findViewById(R.id.dialog_rep_detailed_view_delay)
+        text = view.findViewById(R.id.bottom_sheet_persistent_replay_player_textView_frames)
+        delayText = view.findViewById(R.id.bottom_sheet_persistent_replay_player_seekbar_textView)
 
-        backward = view.findViewById(R.id.dialog_rep_detailed_view_button_backward)
-        forward = view.findViewById(R.id.dialog_rep_detailed_view_button_forward)
-        play = view.findViewById(R.id.dialog_rep_detailed_view_button_play)
+        backward = view.findViewById(R.id.bottom_sheet_persistent_replay_player_back)
+        forward = view.findViewById(R.id.bottom_sheet_persistent_replay_player_forward)
+        play = view.findViewById(R.id.bottom_sheet_persistent_replay_player_play)
+        playIcon = view.findViewById(R.id.bottom_sheet_persistent_replay_player_play_icon)
 
-        slider = view.findViewById(R.id.dialog_rep_detailed_view_slider)
+        slider = view.findViewById(R.id.bottom_sheet_persistent_replay_player_seekbar)
+
+        bottomSheetBehavior =
+            BottomSheetBehavior.from(view.findViewById(R.id.bottom_sheet_persistent_replay_player))
+
+        dragHandle = view.findViewById(R.id.bottom_sheet_persistent_replay_player_handle_icon)
 
         return view
     }
@@ -85,7 +92,14 @@ class RepReplayDialog(
         toolbar.inflateMenu(R.menu.dialog_rep_detailed_view_menu)
 
         val colorText = SpannableString(currentFrameMode)
-        colorText.setSpan(ForegroundColorSpan(ContextCompat.getColor(context,R.color.customTextColor)), 0, colorText.length, 0)
+        colorText.setSpan(
+            ForegroundColorSpan(
+                ContextCompat.getColor(
+                    context,
+                    R.color.customTextColor
+                )
+            ), 0, colorText.length, 0
+        )
         toolbar.menu.getItem(1).titleCondensed = colorText
 
         toolbar.setOnMenuItemClickListener { menuItem ->
@@ -115,7 +129,14 @@ class RepReplayDialog(
                     currentFramePosition = 0
 
                     val colorText = SpannableString(currentFrameMode)
-                    colorText.setSpan(ForegroundColorSpan(ContextCompat.getColor(context,R.color.customTextColor)), 0, colorText.length, 0)
+                    colorText.setSpan(
+                        ForegroundColorSpan(
+                            ContextCompat.getColor(
+                                context,
+                                R.color.customTextColor
+                            )
+                        ), 0, colorText.length, 0
+                    )
                     toolbar.menu.getItem(1).titleCondensed = colorText
 
                     changeStartButtonIcon()
@@ -139,7 +160,14 @@ class RepReplayDialog(
 
                     currentFrameMode = "ALL"
                     val colorText = SpannableString(currentFrameMode)
-                    colorText.setSpan(ForegroundColorSpan(ContextCompat.getColor(context,R.color.customTextColor)), 0, colorText.length, 0)
+                    colorText.setSpan(
+                        ForegroundColorSpan(
+                            ContextCompat.getColor(
+                                context,
+                                R.color.customTextColor
+                            )
+                        ), 0, colorText.length, 0
+                    )
                     toolbar.menu.getItem(1).titleCondensed = colorText
 
                     if (!isPlaying) {
@@ -184,15 +212,31 @@ class RepReplayDialog(
             changeStartButtonIcon()
             drawBitmapWithDelay()
         }
+
+        bottomSheetBehavior.addBottomSheetCallback(object :
+            BottomSheetBehavior.BottomSheetCallback() {
+            override fun onStateChanged(bottomSheet: View, newState: Int) {}
+            override fun onSlide(bottomSheet: View, slideOffset: Float) {
+                dragHandle.rotation = -slideOffset * 180
+            }
+        })
+
+        dragHandle.setOnClickListener {
+            if (bottomSheetBehavior.state == BottomSheetBehavior.STATE_EXPANDED) {
+                bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
+            } else {
+                bottomSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
+            }
+        }
     }
 
     private fun changeStartButtonIcon() {
         if (isPlaying) {
-            play.icon = ContextCompat.getDrawable(context, R.drawable.baseline_stop_24)
-            play.setBackgroundColor(Color.parseColor("#FF818181"))
+            playIcon.setImageResource(R.drawable.baseline_stop_24)
+            play.setCardBackgroundColor(Color.parseColor("#FF818181"))
         } else {
-            play.icon = ContextCompat.getDrawable(context, R.drawable.baseline_play_arrow_24)
-            play.setBackgroundColor(ContextCompat.getColor(context, R.color.start_blue))
+            playIcon.setImageResource(R.drawable.baseline_play_arrow_24)
+            play.setCardBackgroundColor(ContextCompat.getColor(context, R.color.start_blue))
         }
 
     }

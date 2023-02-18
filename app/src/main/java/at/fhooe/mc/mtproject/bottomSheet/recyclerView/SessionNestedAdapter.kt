@@ -20,7 +20,6 @@ import at.fhooe.mc.mtproject.sessionDialog.RepReplayDialog
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.card.MaterialCardView
 import java.util.*
-import kotlin.collections.ArrayList
 
 
 class SessionNestedAdapter(
@@ -72,7 +71,7 @@ class SessionNestedAdapter(
         bottomSheet.setCancelable(false)
 
         val toolbar = bottomSheetBinding.dialogRepDetailedToolbar
-        toolbar.title = "${exerciseName.dropLast(1)} Rep #$repNumber"
+        toolbar.title = "${exerciseName.dropLast(1)} Rep $repNumber"
 
         toolbar.setNavigationOnClickListener {
             bottomSheet.dismiss()
@@ -96,6 +95,14 @@ class SessionNestedAdapter(
                 showRepReplayDialog(repNumber, detailedRepList[index])
                 true
             } else {
+                val strikeThrough = SpannableString(replay.title)
+                strikeThrough.setSpan(
+                    StrikethroughSpan(),
+                    0,
+                    replay.title!!.length,
+                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+                replay.title = strikeThrough
                 false
             }
         }
@@ -142,7 +149,6 @@ class SessionNestedAdapter(
             repCounter.categoryDataList[index]
         )
         recyclerView.layoutManager = LinearLayoutManager(parentContext)
-
         bottomSheet.show()
     }
 
@@ -189,9 +195,9 @@ class SessionNestedAdapter(
             durationUpValue
         ) + "s"
 
-        //something went wrong when measuring, since up cant
+        //something went wrong when measuring, since up or down cant
         //be lower than 0 so do not show the faulty values
-        if (durationUpValue < 0.0) {
+        if (durationUpValue < 0.0 || (detailedRep.durationMovementDown.toDouble() / 1000) < 0.0) {
             durationDown = "-"
             durationUp = "-"
         }
@@ -199,15 +205,15 @@ class SessionNestedAdapter(
         val newValues = arrayListOf(
             DetailedRepInfoData(
                 "Total Rep Duration",
-                "$duration"
+                duration
             ),
             DetailedRepInfoData(
                 "Duration Down Phase",
-                "$durationDown"
+                durationDown
             ),
             DetailedRepInfoData(
                 "Duration Up Phase",
-                "$durationUp"
+                durationUp
             )
         )
         additionalInfoList.addAll(newValues)
@@ -219,7 +225,7 @@ class SessionNestedAdapter(
         repNumber: Int,
         detailedRep: DetailedRepData
     ) {
-        val dialogTitle = "${exerciseName.dropLast(1)} Rep #$repNumber Replay"
+        val dialogTitle = "Replay ${exerciseName.dropLast(1)} Rep $repNumber"
 
         val dialog = RepReplayDialog(dialogTitle, detailedRep, parentContext)
         dialog.show(fragmentManager, "RepDetailedDialog")
