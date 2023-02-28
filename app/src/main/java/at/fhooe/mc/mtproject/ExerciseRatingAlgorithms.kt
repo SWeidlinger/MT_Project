@@ -10,9 +10,9 @@ import kotlin.math.*
 
 class SquatRatingAlgorithms {
     companion object {
-        private const val SQUAT_DEPTH_THRESHOLD_ANGLE = 110
+        private const val SQUAT_DEPTH_THRESHOLD_ANGLE = 105
         private const val STANCE_WIDTH_THRESHOLD_DELTA = 8
-        private const val TORSO_ALIGNMENT_DEVIATION_THRESHOLD = 10
+        private const val TORSO_ALIGNMENT_DEVIATION_THRESHOLD = 15
 
         fun getSquatDepthAngle(pose: Pose, currentMinSquatDepth: Double): Double {
             val lHip = pose.getPoseLandmark(PoseLandmark.LEFT_HIP)
@@ -137,8 +137,8 @@ class SquatRatingAlgorithms {
 
 class PushUpRatingAlgorithms {
     companion object {
-        const val ELBOW_THRESHOLD_ANGLE = 90
-        const val HIP_THRESHOLD_ANGLE = 175
+        private const val ELBOW_THRESHOLD_ANGLE = 90
+        private const val HIP_THRESHOLD_ANGLE = 175
 
         //experimental
         fun getElbowAngle(pose: Pose): Double {

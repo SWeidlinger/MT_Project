@@ -4,14 +4,6 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.DialogInterface
 import android.util.AttributeSet
-import android.view.ViewGroup
-import android.widget.EditText
-import android.widget.LinearLayout
-import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.core.view.marginStart
-import androidx.core.view.setPadding
-import androidx.core.view.updateLayoutParams
-import androidx.preference.EditTextPreference
 import androidx.preference.ListPreference
 import at.fhooe.mc.mtproject.R
 import com.google.android.material.dialog.MaterialAlertDialogBuilder

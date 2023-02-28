@@ -70,7 +70,6 @@ object CategoryConstants {
     const val SQUAT_DEPTH_TIP = "Try to squat as deep as possible."
     const val TORSO_ALIGNMENT = "Torso Alignment"
     const val TORSO_ALIGNMENT_TIP = "Try to keep your upper body straight."
-    val SQUAT_CATEGORIES_LIST = arrayListOf(STANCE_WIDTH, SQUAT_DEPTH, TORSO_ALIGNMENT)
     const val BODY_ALIGNMENT = "Body Alignment"
     const val BODY_ALIGNMENT_TIP = "Try to keep your body as straight as possible."
 }

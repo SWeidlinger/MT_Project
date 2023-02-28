@@ -26,9 +26,6 @@ class PoseDetectionDrawable(
     private var mLeftPaint: Paint = Paint()
     private lateinit var mCanvas: Canvas
 
-    private var zMin = java.lang.Float.MAX_VALUE
-    private var zMax = java.lang.Float.MIN_VALUE
-
     init {
         mPaint.color = Color.WHITE
         mPaint.strokeWidth = STROKE_WIDTH
@@ -112,8 +109,6 @@ class PoseDetectionDrawable(
         val rightEyeInner = pose.getPoseLandmark(PoseLandmark.RIGHT_EYE_INNER)
         val rightEye = pose.getPoseLandmark(PoseLandmark.RIGHT_EYE)
         val rightEyeOuter = pose.getPoseLandmark(PoseLandmark.RIGHT_EYE_OUTER)
-        val leftEar = pose.getPoseLandmark(PoseLandmark.LEFT_EAR)
-        val rightEar = pose.getPoseLandmark(PoseLandmark.RIGHT_EAR)
         val leftMouth = pose.getPoseLandmark(PoseLandmark.LEFT_MOUTH)
         val rightMouth = pose.getPoseLandmark(PoseLandmark.RIGHT_MOUTH)
 
@@ -130,26 +125,13 @@ class PoseDetectionDrawable(
         val leftAnkle = pose.getPoseLandmark(PoseLandmark.LEFT_ANKLE)
         val rightAnkle = pose.getPoseLandmark(PoseLandmark.RIGHT_ANKLE)
 
-        val leftPinky = pose.getPoseLandmark(PoseLandmark.LEFT_PINKY)
-        val rightPinky = pose.getPoseLandmark(PoseLandmark.RIGHT_PINKY)
-        val leftIndex = pose.getPoseLandmark(PoseLandmark.LEFT_INDEX)
-        val rightIndex = pose.getPoseLandmark(PoseLandmark.RIGHT_INDEX)
-        val leftThumb = pose.getPoseLandmark(PoseLandmark.LEFT_THUMB)
-        val rightThumb = pose.getPoseLandmark(PoseLandmark.RIGHT_THUMB)
-        val leftHeel = pose.getPoseLandmark(PoseLandmark.LEFT_HEEL)
-        val rightHeel = pose.getPoseLandmark(PoseLandmark.RIGHT_HEEL)
-        val leftFootIndex = pose.getPoseLandmark(PoseLandmark.LEFT_FOOT_INDEX)
-        val rightFootIndex = pose.getPoseLandmark(PoseLandmark.RIGHT_FOOT_INDEX)
-
         // Face
         drawLine(canvas, nose, leftEyeInner, mFacePaint)
         drawLine(canvas, leftEyeInner, leftEye, mFacePaint)
         drawLine(canvas, leftEye, leftEyeOuter, mFacePaint)
-//        drawLine(canvas, leftEyeOuter, leftEar, mFacePaint)
         drawLine(canvas, nose, rightEyeInner, mFacePaint)
         drawLine(canvas, rightEyeInner, rightEye, mFacePaint)
         drawLine(canvas, rightEye, rightEyeOuter, mFacePaint)
-//        drawLine(canvas, rightEyeOuter, rightEar, mFacePaint)
         drawLine(canvas, leftMouth, rightMouth, mFacePaint)
 
         // Chest
@@ -163,28 +145,12 @@ class PoseDetectionDrawable(
         drawLine(canvas, rightShoulder, rightElbow, mRightPaint)
         drawLine(canvas, rightElbow, rightWrist, mRightPaint)
 
-//        // Hands
-//        drawLine(canvas, leftWrist, leftThumb, mHandPaint)
-//        drawLine(canvas, leftWrist, leftPinky, mHandPaint)
-//        drawLine(canvas, leftWrist, leftIndex, mHandPaint)
-//        drawLine(canvas, leftIndex, leftPinky, mHandPaint)
-//        drawLine(canvas, rightWrist, rightThumb, mHandPaint)
-//        drawLine(canvas, rightWrist, rightPinky, mHandPaint)
-//        drawLine(canvas, rightWrist, rightIndex, mHandPaint)
-//        drawLine(canvas, rightIndex, rightPinky, mHandPaint)
-
         // Legs
         drawLine(canvas, leftHip, rightHip, mLegPaint)
         drawLine(canvas, leftHip, leftKnee, mLeftPaint)
         drawLine(canvas, leftKnee, leftAnkle, mLeftPaint)
         drawLine(canvas, rightHip, rightKnee, mRightPaint)
         drawLine(canvas, rightKnee, rightAnkle, mRightPaint)
-
-        // Feet
-//        drawLine(canvas, leftAnkle, leftHeel, mLeftPaint)
-//        drawLine(canvas, leftHeel, leftFootIndex, mFootPaint)
-//        drawLine(canvas, rightAnkle, rightHeel, mRightPaint)
-//        drawLine(canvas, rightHeel, rightFootIndex, mFootPaint)
     }
 
     private fun drawPoint(canvas: Canvas, landmark: PoseLandmark, paint: Paint) {

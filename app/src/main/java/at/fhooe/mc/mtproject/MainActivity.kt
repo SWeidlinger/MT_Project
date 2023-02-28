@@ -74,8 +74,6 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
     private var mSessionActive = false
     private var mWorkoutStartTime: Long = 0
 
-    private var mRotationDegrees: Int = 0
-
     // Select back camera as default
     private var mCameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
     private var mDebugMode = false
@@ -121,8 +119,6 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
     private var mMaxFramesRep = 50
     private var mCurrentFrameCount = 0
     private var mSaveActiveMovement = false
-
-    private var mPrevRepCount = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -281,7 +277,7 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
         mCameraSettingSelection =
             mDataSingleton.getSetting(DataConstants.CAMERA_SELECTION) as Int
 
-        bindCameraLifecycles()
+        bindCameraUseCases()
     }
 
     //sets up the double tap to switch cameras
@@ -330,7 +326,6 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
             .build()
         mImageAnalyzer.setAnalyzer(mCameraExecutor) { imageProxy ->
             val rotationDegrees = imageProxy.imageInfo.rotationDegrees
-            mRotationDegrees = rotationDegrees
             val image = imageProxy.image ?: return@setAnalyzer
             val inputImage = InputImage.fromMediaImage(image, rotationDegrees)
 
@@ -581,11 +576,11 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
 
             mPreview.setSurfaceProvider(binding.activityMainPreviewView.surfaceProvider)
 
-            bindCameraLifecycles()
+            bindCameraUseCases()
         }, ContextCompat.getMainExecutor(this))
     }
 
-    private fun bindCameraLifecycles() {
+    private fun bindCameraUseCases() {
         try {
             // Unbind use cases before rebinding
             mCameraProvider.unbindAll()
@@ -841,7 +836,11 @@ class MainActivity : AppCompatActivity(), ServiceCallbacks {
                 mDataSingleton.mRepListSquats = arrayListOf()
                 mDataSingleton.mRepListPushUps = arrayListOf()
                 mDataSingleton.mRepListSitUps = arrayListOf()
+                mSquatReps = 0
+                mPushUpReps = 0
+                mSitUpReps = 0
                 mCurrentFrameCount = 0
+                mRepStartTime = 0
             }
         }
 

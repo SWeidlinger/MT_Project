@@ -4,7 +4,6 @@ import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.RelativeLayout
 import android.widget.TextView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.isVisible
@@ -102,8 +101,6 @@ class SessionAdapter(
             root.findViewById(R.id.session_exercise_item_parent_repCount)
         val avgScoreText: TextView =
             root.findViewById(R.id.session_exercise_item_parent_avgScore)
-        val relativeLayout: RelativeLayout =
-            root.findViewById(R.id.session_exercise_item_relativeLayout)
         val expandableLayout: ConstraintLayout =
             root.findViewById(R.id.session_exercise_item_expandable_layout)
         val nestedRecyclerView: RecyclerView =

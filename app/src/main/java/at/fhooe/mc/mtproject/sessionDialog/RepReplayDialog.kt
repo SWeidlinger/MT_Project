@@ -128,16 +128,16 @@ class RepReplayDialog(
                     }
                     currentFramePosition = 0
 
-                    val colorText = SpannableString(currentFrameMode)
-                    colorText.setSpan(
+                    val colorTextCurrent = SpannableString(currentFrameMode)
+                    colorTextCurrent.setSpan(
                         ForegroundColorSpan(
                             ContextCompat.getColor(
                                 context,
                                 R.color.customTextColor
                             )
-                        ), 0, colorText.length, 0
+                        ), 0, colorTextCurrent.length, 0
                     )
-                    toolbar.menu.getItem(1).titleCondensed = colorText
+                    toolbar.menu.getItem(1).titleCondensed = colorTextCurrent
 
                     changeStartButtonIcon()
                     drawBitmapWithDelay()
@@ -159,16 +159,16 @@ class RepReplayDialog(
                     }
 
                     currentFrameMode = "ALL"
-                    val colorText = SpannableString(currentFrameMode)
-                    colorText.setSpan(
+                    val colorTextCurrent = SpannableString(currentFrameMode)
+                    colorTextCurrent.setSpan(
                         ForegroundColorSpan(
                             ContextCompat.getColor(
                                 context,
                                 R.color.customTextColor
                             )
-                        ), 0, colorText.length, 0
+                        ), 0, colorTextCurrent.length, 0
                     )
-                    toolbar.menu.getItem(1).titleCondensed = colorText
+                    toolbar.menu.getItem(1).titleCondensed = colorTextCurrent
 
                     if (!isPlaying) {
                         drawBitmapWithDelay()
@@ -232,7 +232,7 @@ class RepReplayDialog(
 
     private fun changeStartButtonIcon() {
         if (isPlaying) {
-            playIcon.setImageResource(R.drawable.baseline_stop_24)
+            playIcon.setImageResource(R.drawable.baseline_pause_24)
             play.setCardBackgroundColor(Color.parseColor("#FF818181"))
         } else {
             playIcon.setImageResource(R.drawable.baseline_play_arrow_24)

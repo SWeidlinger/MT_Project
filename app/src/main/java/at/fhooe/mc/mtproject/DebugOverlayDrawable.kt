@@ -31,9 +31,6 @@ class DebugOverlayDrawable(
     private var mPointPaint: Paint = Paint()
     private lateinit var mCanvas: Canvas
 
-    private var zMin = java.lang.Float.MAX_VALUE
-    private var zMax = java.lang.Float.MIN_VALUE
-
     init {
         mPaint.color = Color.WHITE
         mPaint.strokeWidth = STROKE_WIDTH
@@ -95,12 +92,12 @@ class DebugOverlayDrawable(
 
         for (landmark in landmarks) {
             if (checkPoint(landmark)) {
-                drawPoint(mCanvas, landmark, mPointPaint)
+                drawPoint(mCanvas, landmark)
             }
         }
     }
 
-    private fun drawPoint(canvas: Canvas, landmark: PoseLandmark, paint: Paint) {
+    private fun drawPoint(canvas: Canvas, landmark: PoseLandmark) {
         if (landmark.inFrameLikelihood >= thresholdIFL) {
             val paintDebug = Paint()
             paintDebug.color = Color.GREEN
@@ -177,7 +174,6 @@ class DebugOverlayDrawable(
     }
 
     private companion object {
-        const val DOT_RADIUS = 7.0f
         const val IN_FRAME_LIKELIHOOD_TEXT_SIZE = 23.0f
         const val STROKE_WIDTH = 6.0f
         const val DEBUG_TEXT_WIDTH = 45.0f

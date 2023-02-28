@@ -4,6 +4,7 @@ import android.content.Context
 import android.text.Spannable
 import android.text.SpannableString
 import android.text.style.StrikethroughSpan
+import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -30,7 +31,7 @@ class SessionNestedAdapter(
     private val repReplayActive: Boolean,
 ) :
     RecyclerView.Adapter<SessionNestedAdapter.SessionViewHolder>() {
-    lateinit var parentContext: Context
+    private lateinit var parentContext: Context
     override fun onCreateViewHolder(
         parent: ViewGroup,
         viewType: Int
@@ -75,6 +76,14 @@ class SessionNestedAdapter(
 
         toolbar.setNavigationOnClickListener {
             bottomSheet.dismiss()
+        }
+
+        //set dismissal on backButton press
+        bottomSheet.setOnKeyListener { _, keyCode, keyEvent ->
+            if (keyCode == KeyEvent.KEYCODE_BACK && keyEvent.action == KeyEvent.ACTION_UP) {
+                bottomSheet.dismiss()
+            }
+            false
         }
 
         val replay = toolbar.menu.getItem(0)

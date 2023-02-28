@@ -11,7 +11,7 @@
             android:key="switch_debugMode"
             android:title="@string/preference_switch_debug_mode"
             app:iconSpaceReserved="false"
-            app:summary="Shows more Information on Screen" />
+            app:summary="Show additional information" />
         <EditTextPreference
             android:defaultValue="Default value"
             android:key="edit_text_countdown_timer"
@@ -40,7 +40,7 @@
             android:title="@string/preference_switch_sync_preview_and_overlay"
             app:defaultValue="true"
             app:iconSpaceReserved="false"
-            app:summary="Syncs Camera Preview with ML Model Output" />
+            app:summary="Sync camera preview with ML output" />
     </PreferenceCategory>
     <PreferenceCategory
         app:iconSpaceReserved="false"
@@ -66,7 +66,7 @@
     </PreferenceCategory>
 
     <PreferenceCategory
-        android:title="Experimental"
+        android:title="Rep Replay"
         app:iconSpaceReserved="false">
 
         <SwitchPreference
@@ -74,7 +74,7 @@
             android:key="switch_detailedRepInfo"
             android:title="@string/reference_switch_detailed_rep_info"
             app:iconSpaceReserved="false"
-            app:summary="Save Frames from Reps (causes crashes)" />
+            app:summary="Save frames from rep (causes crashes)" />
         <EditTextPreference
             android:defaultValue="50"
             android:key="edit_text_max_frames_rep"
@@ -86,8 +86,8 @@
         <SwitchPreference
             android:defaultValue="false"
             android:key="switch_save_active_movement"
-            android:title="Only Save Active Movement"
+            android:title="Only Active Movement"
             app:iconSpaceReserved="false"
-            app:summary="Saves only Frames which are classified as Active for the Exercise" />
+            app:summary="Only saves frames classified as an active part of the exercise" />
     </PreferenceCategory>
 </androidx.preference.PreferenceScreen>

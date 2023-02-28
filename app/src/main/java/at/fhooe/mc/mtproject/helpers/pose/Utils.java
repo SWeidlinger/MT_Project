@@ -21,8 +21,6 @@ import com.google.mlkit.vision.common.PointF3D;
 import java.util.List;
 import java.util.ListIterator;
 
-//import static com.google.common.primitives.Floats.max;
-
 /**
  * Utility methods for operations on {@link PointF3D}.
  */
