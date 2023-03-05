@@ -16,7 +16,9 @@
         app:cardBackgroundColor="#555555"
         app:cardCornerRadius="10dp"
         app:cardElevation="3dp"
-        app:cardUseCompatPadding="true">
+        app:cardUseCompatPadding="true"
+        app:strokeColor="@color/mtrl_textinput_default_box_stroke_color"
+        app:strokeWidth="1.5dp">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"

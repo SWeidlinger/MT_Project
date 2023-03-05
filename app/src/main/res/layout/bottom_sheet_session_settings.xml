@@ -23,7 +23,7 @@
             app:layout_constraintStart_toEndOf="@+id/bottom_sheet_session_settings_exercise_selector"
             app:layout_constraintTop_toTopOf="@+id/bottom_sheet_session_settings_exercise_selector"
             app:strokeColor="@color/mtrl_textinput_default_box_stroke_color"
-            app:strokeWidth="1dp">
+            app:strokeWidth="1.5dp">
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
@@ -69,7 +69,7 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/materialToolbar3"
             app:strokeColor="@color/mtrl_textinput_default_box_stroke_color"
-            app:strokeWidth="1dp">
+            app:strokeWidth="1.5dp">
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"

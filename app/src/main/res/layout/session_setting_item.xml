@@ -13,6 +13,7 @@
         android:foregroundTint="#007EB8"
         app:cardCornerRadius="10dp"
         app:cardElevation="0dp"
+        app:checkedIconMargin="13.5dp"
         app:checkedIconTint="#007EB8"
         app:rippleColor="#007EB8">
 
